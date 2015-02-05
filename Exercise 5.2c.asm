@@ -61,21 +61,20 @@
 			ADD  R1 leds_timers					;Load the address of the relevant timer in R1
 			AND  R3 1							;Select only the first bit of the input
 			BEQ  increment						;If this is 0, we increment the counter
-			LOAD R4 R0							;Store the shifted bit sequence in R4 for later use
-			LOAD R0 [GB+R1]						;Load the previous led timer in R0
+			LOAD R4 [GB+R1]						;Load the previous led timer in R0
 			BEQ  update_state					;If this is already 0, we jump to update_state
-			SUB  R0 10							;If not already 0, substract 10
-			STOR R0 [GB+R1]						;Store the newfound value at the led timer
+			SUB  R4 10							;If not already 0, substract 10
+			STOR R4 [GB+R1]						;Store the newfound value at the led timer
 			BRA  update_state					;Branch to update state
-	increment:			
-			LOAD R0 [GB+R1]						;Load the previous led timer in R0
-			CMP  R0 100							
+	increment:
+			LOAD R4 [GB+R1]						;Load the previous led timer in R0
+			CMP  R4 100							
 			BEQ  update_state					;If previous timer is already 100, skip to update_button_end
-			ADD  R0 10							;Increment the timer by 10
-			STOR R0 [GB+R1]						;Store the new timer in the array
+			ADD  R4 10							;Increment the timer by 10
+			STOR R4 [GB+R1]						;Store the new timer in the array
 	update_state:
 			LOAD R1 [GB+button_prev_state]		;Load the previous state in R1
-			OR   R1 R4							;Set the relevant button to 1
+			OR   R1 R0							;Set the relevant button to 1
 			STOR R1 [GB+button_prev_state]		;Store the new state
 			BRA  update_button_end				;Branch to end
 	update_button_set_zero:
