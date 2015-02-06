@@ -18,17 +18,20 @@
     TIMER_DELTA  EQU  10
 
    main :
-			LOAD R0  timer_interrupt
-			ADD  R0  R5
-			LOAD R1  TIMER_INTR_ADDR
-			STOR R0  [R1]
-			LOAD R5  IOAREA
-			LOAD R0  10	
-			SUB  R0  [R5+TIMER]
-			STOR R0  [R5+TIMER]
-			SETI 8
-			
+			LOAD R0  timer_interrupt         ;Retrieve relative interrupt location
+			ADD  R0  R5                      ;Add to address of program
+			LOAD R1  TIMER_INTR_ADDR         ;Load address of the timer into R1
+			STOR R0  [R1]                    ;Store the interrupt location at the timer interrupt location
+			LOAD R5  IOAREA                  ;Load address of IOAREA into R5
+			LOAD R0  0	                     
+			SUB  R0  [R5+TIMER]              ;Calculate delta time
+			STOR R0  [R5+TIMER]              ;Set timer to 0
+			SETI 8                           ;Enable timer interrupt
+				
+	;Main loop, checks if each button is pressed and updates leds_timers appropriately.
+		
 	update_buttons_loop:
+		;Call the update_button subroutine for buttons 1 to 7
 			LOAD R0 1
 			BRS  update_button
 			LOAD R0 2
@@ -43,8 +46,9 @@
 			BRS  update_button
 			LOAD R0 7
 			BRS  update_button
-			BRS  update_ad_button
-			BRA  update_buttons_loop
+;
+			BRS  update_ad_button    			;Call subroutine for updating LED0           
+			BRA  update_buttons_loop			;Restart loop
 			
 	;Subroutine that checks if button in R0 is pressed, and updates stored value.
 	update_button:
@@ -84,8 +88,8 @@
 			STOR R1 [GB+button_prev_state]		;Store the new state
 	update_button_end:
 			RTS
-			
-			
+;
+	;Subroutine to update leds_timers for LED0 according to the analogue slider.
 	update_ad_button:
 			LOAD R0 [R5+ADCONV]
 			MULS R0 100
@@ -94,71 +98,73 @@
 			
 	; R0 is value to be shifted (right) and R1 number of bits to be shifted
 	shift_bits:
-        PUSH R1
+        PUSH R1                   ;push R1 to prevent mutation
         CMP  R1  0
+		BEQ  shift_bits_end
 	shift_bits_cond:
-        BEQ  shift_bits_end
-        MULS  R0  2 ; shift left
+        MULS R0  2 ; shift left
         SUB  R1  1
+		BEQ  shift_bits_end
         BRA shift_bits_cond
 	shift_bits_end:
-        PULL R1
+        PULL R1                   ;Return original value for R1
         RTS
-		
-		
 	
+;R0 holds the counter
+;R1 holds the LED to be set
+;R2 holds the word in which the bit corresponding to the LED will be set to 1,
+;if the LED is supposed to be on at this time. The routine assumes that the
+;corresponding bit is 0 at time of calling. The rest of the word is not mutated.
+;R3 holds a word in which the bit representing the LED is 1 
+    set_led:
+		PUSH R0                          ;Save the value of R0
+		LOAD R0  1                       
+		BRS  shift_bits                  ;Shift the bits to the right place for the current LED
+		LOAD R3	R0                       ;Save this word
+		PULL R0                          ;Retrieve R0
+		;Add to address of the leds_timers array to R1 to obtain the address of the correct timer.
+		ADD  R1 leds_timers              
+		LOAD R4	[GB+R1]                  ;Load the LED timer into R4
+		CMP  R4 R0                       ;Compare the timer to the counter
+		BLE  set_led_end                 ;If timer is less than counter, led is not on.
+		XOR  R2  R3                      ;Flip the bit for the current LED
+	set_led_end:
+		RTS	
+		
+    ;Timer interrupt service routine	
 	timer_interrupt:
-		LOAD R0 [GB+counter]
-		ADD  R0 10
-		CMP  R0 100
-		BNE  continue_interrupt
-		LOAD R0 0
-	continue_interrupt:
-		STOR R0 [GB+counter]
-		LOAD R2 0
-		LOAD R1 [GB+leds_timers]
-		CMP  R1 R0
-		BLE  continue_button_1
-		XOR  R2 %01
-	continue_button_1:
-		LOAD R1 [GB+leds_timers+1]
-		CMP  R1 R0
-		BLE  continue_button_2
-		XOR  R2 %010
-	continue_button_2:
-		LOAD R1 [GB+leds_timers+2]
-		CMP  R1 R0
-		BLE  continue_button_3
-		XOR  R2 %0100
-	continue_button_3:
-		LOAD R1 [GB+leds_timers+3]
-		CMP  R1 R0
-		BLE  continue_button_4
-		XOR  R2 %01000
-	continue_button_4:
-		LOAD R1 [GB+leds_timers+4]
-		CMP  R1 R0
-		BLE  continue_button_5
-		XOR  R2 %010000
-	continue_button_5:
-		LOAD R1 [GB+leds_timers+5]
-		CMP  R1 R0
-		BLE  continue_button_6
-		XOR  R2 %0100000
-	continue_button_6:
-		LOAD R1 [GB+leds_timers+6]
-		CMP  R1 R0
-		BLE  continue_button_7
-		XOR  R2 %01000000
-	continue_button_7:
-		LOAD R1 [GB+leds_timers+7]
-		CMP  R1 R0
-		BLE  continue_end
-		XOR  R2 %010000000
+		LOAD R0 [GB+counter]		;Load the counter into R0
+		ADD  R0 10                  ;Increment counter by 10
+		CMP  R0 100                 ;Check if counter is equal to 100
+		BNE  timer_interrupt_continue
+		LOAD R0 0                   ;If counter is 100 reset to 0
+	timer_interrupt_continue:
+		STOR R0 [GB+counter]        ;Store new counter value 
+		LOAD R2 0                   ;Set R2 initially to 0
+		;
+		;For each led, call set_led routine, which sets the appropriate bit in R2
+		;to 1 if the led is supposed to be on at this point in time.
+		LOAD R1 0
+		BRS  set_led             
+		LOAD R1 1
+		BRS  set_led
+		LOAD R1 2
+		BRS  set_led
+		LOAD R1 3
+		BRS  set_led
+		LOAD R1 4
+		BRS  set_led
+		LOAD R1 5
+		BRS  set_led
+		LOAD R1 6
+		BRS  set_led
+		LOAD R1 7
+		BRS  set_led
+		;
 	continue_end:
-		STOR R2 [R5+OUTPUT]
-		LOAD R0 1000
-		STOR R0 [R5+TIMER]
-		SETI 8
+		STOR R2 [R5+OUTPUT]		;Update the LEDS
+		LOAD R0 1000            ;Schedule new interrupt
+		STOR R0 [R5+TIMER]      ;
+		SETI 8                  ;Enable interrupt
 		RTE
 			
