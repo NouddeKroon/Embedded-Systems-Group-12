@@ -189,7 +189,7 @@
 		;
 	continue_end:
 		STOR R2 [R5+OUTPUT]		;Update the LEDS
-		LOAD R0 1000            ;Schedule new interrupt
+		LOAD R0 10            ;Schedule new interrupt
 		STOR R0 [R5+TIMER]      ;
 		SETI 8                  ;Enable interrupt
 		RTE
