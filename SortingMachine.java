@@ -28,8 +28,9 @@ public class SortingMachine {
     boolean RotatingBucketsSensor;
     boolean ColorSensor;
     int Clock1;
-    
-    
+    int previousInput;
+    int counter;
+    int[] outputs = new int[8];
     void RestingState(){
         while(true){
             if(Abort == true){
@@ -298,21 +299,73 @@ public class SortingMachine {
        }
        // This is the interrupt service of our program.
        // The method will be called once every millisecond.
-       void interrupt(){                  
-           while(true){
-               Read_Input();
-               for(int i = 0; i <= 8; i++){
-                   Set_variables();
-               }
-           
-           if(StartStop == true){
+    void interrupt(){                  
+        while(true){
+            int input = Read_Input();
+            
+            if ((previousInput & 1) == 0) {
+                if ((input & 1) != 0) {
+                    StartStop = true;
+                }
+            }
+            
+            if ((previousInput & (1 << 1)) == 0) {
+                if ((input & (1 << 1)) != 0) {
+                    Abort = true;
+                }
+            }
+            
+            
+            if ((input & (1 << 2)) != 0) {
+                ColorSensor = true;
+            }
+            
+             
+            if ((input & (1 << 3)) != 0) {
+                PositionDetectorSensor = true;
+            }
+            
+             
+            if ((input & (1 << 4)) != 0) {
+                RotatingBucketsSensor = true;
+            }
+            
+             
+            if ((input & (1 << 5)) != 0) {
+               LoadingArmPS = true;
+            }
+            
+            
+            if(StartStop == true){
                StopPressed = true;
-           }
+            }
+            
+            previousInput = input;
+            
            Clock1++;
            Set_Output_PWM();
            Sleep(1);
-         }
-       }
+        }
+    }
+    
+    void Set_Output_PWM(){
+        int output = 0;
+        counter = counter + 10;
+        if (counter == 100) {
+            counter = 0;
+        }
+        for (int i = 0; i <= 7; i++) {
+            if (outputs[i] <= counter) {
+                output = output ^ (1<<i);
+            }
+        }
+        
+        storeOutput(output);
+    }
+       
+    void storeOutput(int output) {
+        //Simulates storing a word in the output position of PP2 storage.
+    }
     public static void main(String[] args) {
       new  SortingMachine().Initialize97State();
     }
