@@ -48,14 +48,16 @@ public class SortingMachine {
     void RestingState(){
         while(true){
             if(Abort == true){
+                StateDisplay = 99;
                 Abort99State();
             }
             if(StartStop == true){
                 LoadingArm = 80;
+                StopPressed = false;
                 StateDisplay = 1;
                 Running01State();
             }
-    }    
+        }
     }
     
     void Abort99State(){
@@ -155,7 +157,6 @@ public class SortingMachine {
                 Abort99State();
             }
             if(LoadingArmPS == true){
-                StopPressed = false;
                 StateDisplay = 2;
                 Running02State();
             }
@@ -176,7 +177,7 @@ public class SortingMachine {
                 ColorWhite = false;
                 StateDisplay = 3;
                 Running03State();
-                        }
+            }
         }
      }
       void Running03State(){
@@ -185,7 +186,7 @@ public class SortingMachine {
                 StateDisplay = 99;
                 Abort99State();
             }
-            if(ColorSensor == true) {
+            if(ColorSensor == true){
                 ColorWhite = true;
             }
             if(Clock1 >= 500){
@@ -202,7 +203,7 @@ public class SortingMachine {
                 StateDisplay = 4;
                 Running04State();
             }
-            }
+        }
       }
        void Running04State(){
         while(true){
@@ -211,10 +212,10 @@ public class SortingMachine {
                 Abort99State();
             }
             if(ColorWhite == true && WhiteBucketFront == false){
-              RotatingBucketsLED = 80;
-              Clock1 = 0;
-              StateDisplay = 5;
-              Running05State();
+                RotatingBucketsLED = 80;
+                Clock1 = 0;
+                StateDisplay = 5;
+                Running05State();
             }
             if(ColorWhite == true && WhiteBucketFront == true){
                 White++;
@@ -323,23 +324,23 @@ public class SortingMachine {
             //from an unpressed to a pressed state.
             if ((previousInput & 1) == 0) {      
                 if ((input & 1) != 0) {
-                    StartStop = true;
                     StopPressed = true;
                 }
+            }
+
+            if (input & 1 != 0) {
+                StartStop = true;
             } else {
                 StartStop = false;
             }
-           
             //Isolates the second bit of the input and checks if it moved
             //from an unpressed to a pressed state.
             if ((previousInput & (1 << 1)) == 0) {  
                 if ((input & (1 << 1)) != 0) {
                     Abort = true;
                 }
-            } else{
-                Abort = false;
             }
-            
+
             /**
              * For each input from 2 to 5, isolate the corresponding bit, and, 
              * if the signal is high, set the corresponding boolean to true, 
@@ -365,14 +366,13 @@ public class SortingMachine {
             }else{
                LoadingArmPS = false;
             }
+        previousInput = input;
             
-            previousInput = input;
-            
-           Clock1++;
-           Set_Output_PWM();
-           SetDisplayLED();
+        Clock1++;
+        Set_Output_PWM();
+        SetDisplayLED();
            
-           Sleep(1); //The interrupt is executed once every milisecond.
+        Sleep(1); //The interrupt is executed once every milisecond.
         }
     }
     
@@ -416,8 +416,8 @@ public class SortingMachine {
     }
     /**
      * This method sets the correct numbers to the LED display on the PP2.
-     * The method SetDisplay() sets the numbers to the LEDs on the PP2, but can
-     * not be replicated in Java.
+     * The method SetDisplay(int displaySegement, int number) sets the numbers
+     * to the LEDs on the PP2, but can not be replicated in Java.
      */
     void SetDisplayLED(){
         if(DisplayCounter == 0){
