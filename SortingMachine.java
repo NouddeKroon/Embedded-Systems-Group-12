@@ -5,20 +5,27 @@
 public class SortingMachine {
     boolean Abort;          //Stores the current value of the abort button.
     boolean StartStop;      //Stores the current value of the Start/stop button.
-    boolean StopPressed;    //Remembers whether start/stop has been pressed so 
+    boolean StopPressed;    //Remembers whether start/stop has been pressed so
                             //the program will halt on the next cycle.
     boolean ColorWhite;     //Remebers if the color white has been detected.
-    
+
     /**
      * For each motor, store the current strength of output for the 
      * motor in an int.                       
      */
-    int ConveyorBelt;       
+    final int CONVEYORSTRENGTH = 80;
+    final int BUCKETSTRENGTH = 80;
+    final int ARMSTRENGTH = 80;
+
+    int ConveyorBelt;
     int RotatingBuckets;   
     int LoadingArm;         
     /**
      *Stores an int for the current strength of output for the LED.
      */
+    final int COLORSTRENGTH = 80;
+    final int POSITIONSTRENGTH = 80;
+
     int ColorLED;          
     int PositionDetectorLED;
     int RotatingBucketsLED;
@@ -52,7 +59,7 @@ public class SortingMachine {
                 Abort99State();
             }
             if(StartStop == true){
-                LoadingArm = 80;
+                LoadingArm = ARMSTRENGTH;
                 StopPressed = false;
                 StateDisplay = 1;
                 Running01State();
@@ -90,9 +97,9 @@ public class SortingMachine {
                 Abort99State();
             }
             if(LoadingArm == 0){
-                LoadingArm = 80;
+                LoadingArm = ARMSTRENGTH;
             }
-            if(LoadingArm == 80 && LoadingArmPS == true){
+            if(LoadingArm ==ARMSTRENGTH && LoadingArmPS == true){
                 StateDisplay = 96;
                 Initialize96State();
             }
@@ -107,7 +114,7 @@ public class SortingMachine {
             }
             if(LoadingArmPS == false){
                 LoadingArm = 0;
-                RotatingBucketsLED = 80;
+                RotatingBucketsLED =POSITIONSTRENGTH;
                 Clock1 = 0;
                 StateDisplay = 95;
                 Initialize95State();
@@ -124,7 +131,7 @@ public class SortingMachine {
                 Abort99State();
             }
             if(Clock1 >= 1){
-                RotatingBuckets = 80;
+                RotatingBuckets =BUCKETSTRENGTH;
                 StateDisplay = 94;
                 Initialize94State();
                 
@@ -170,9 +177,9 @@ public class SortingMachine {
             }
             if(LoadingArmPS == false) {
                 Clock1 = 0;
-                ConveyorBelt = 80;
-                ColorLED = 80;
-                PositionDetectorLED = 80;
+                ConveyorBelt = CONVEYORSTRENGTH;
+                ColorLED = COLORSTRENGTH;
+                PositionDetectorLED = POSITIONSTRENGTH;
                 LoadingArm = 00;
                 ColorWhite = false;
                 StateDisplay = 3;
@@ -212,7 +219,7 @@ public class SortingMachine {
                 Abort99State();
             }
             if(ColorWhite == true && WhiteBucketFront == false){
-                RotatingBucketsLED = 80;
+                RotatingBucketsLED =POSITIONSTRENGTH;
                 Clock1 = 0;
                 StateDisplay = 5;
                 Running05State();
@@ -228,7 +235,7 @@ public class SortingMachine {
                 Running08State();
             }
             if(ColorWhite == false && WhiteBucketFront == true){
-                RotatingBuckets = 80;
+                RotatingBuckets = BUCKETSTRENGTH;
                 Clock1 = 0;
                 StateDisplay = 7;
                 Running07State();
@@ -242,7 +249,7 @@ public class SortingMachine {
                 Abort99State();
             }
             if(Clock1 >= 1){
-                RotatingBuckets = 80;
+                RotatingBuckets =BUCKETSTRENGTH;
                 StateDisplay = 6;
                 Running06State();
             }
@@ -286,8 +293,8 @@ public class SortingMachine {
                 Abort99State();
             }
             Clock1 =0;
-            ConveyorBelt = 80;
-            PositionDetectorLED = 80;
+            ConveyorBelt = CONVEYORSTRENGTH;
+            PositionDetectorLED = POSITIONSTRENGTH;
             StateDisplay = 9;
             Running09State();
         }
@@ -307,7 +314,7 @@ public class SortingMachine {
             }
             if(StopPressed == false) {
                 ConveyorBelt = 00;
-                LoadingArm = 80;
+                LoadingArm = ARMSTRENGTH;
                 PositionDetectorLED = 00;
                 StateDisplay = 1;
                 Running01State();
