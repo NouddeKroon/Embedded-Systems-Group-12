@@ -73,14 +73,150 @@
 		STOR R0 [GB+stateDisplay] ;Update the stateDisplay
 		BRA running_01            ;Branch to the next state
 	if_guard_00_end :
-	BRA resting_state             ;endlessly loop
+	    BRA resting_state             ;endlessly loop
 	
 	
 	
 	running_01:
+		LOAD R0 [GB+abort]        ;Load the abort boolean
+		BEQ if_abort_01_end       ;If false, do nothing
+		BRA abort_99              ;If true, branch to abort_99
+	if_abort_01_end :             ;
+		LOAD R0 [GB+loadingArmPS]
+		BEQ  if_guard_01_end
+		LOAD R0 2
+		STOR R0 [GB+stateDisplay]
+		BRA running_02
+	if_guard_01_end:
+		BRA running_01
+	
+    running_02:
+		LOAD R0 [GB+abort]        ;Load the abort boolean
+		BEQ if_abort_02_end       ;If false, do nothing
+		BRA abort_99              ;If true, branch to abort_99
+	if_abort_02_end :             ;
+		LOAD R0 [GB+loadingArmPS] 
+		BNE  if_guard_02_end      ;If true, loop, if false execute body
+		LOAD R0 0
+		STOR R0 [GB+clock]
+		LOAD R0	CONVEYORSTRENGTH
+		STOR R0 [GB+conveyorBelt]
+		LOAD R0	COLORSTRENGTH
+		STOR R0 [GB+colorLED]
+	    LOAD R0	POSITIONSTRENGTH
+		STOR R0 [GB+positionDetectorLED]
+		LOAD R0	0
+		STOR R0 [GB+loadingArm]
+		STOR R0 [GB+colorWhite]
+	    LOAD R0	3
+		STOR R0 s[GB+stateDisplay]
+		BRA running_03
+	if_guard_02_end:
+		BRA running_02	
+    
+	running_03:
+		LOAD R0 [GB+abort]        ;Load the abort boolean
+		BEQ if_abort_03_end       ;If false, do nothing
+		BRA abort_99              ;If true, branch to abort_99
+	if_abort_03_end :             ;
+		LOAD R0 [GB+colorSensor]
+		BEQ  if_guard_03_01_end
+		LOAD R0 1
+		STOR R0 [GB+colorWhite]
+	if_guard_03_01_end:
+		LOAD R0 [GB+clock]
+		CMP  R0 500
+		BLT  if_guard_03_02_end    ;not completely sure of this, revise later
+		LOAD R0	0
+		STOR R0 [GB+conveyorBelt]
+		STOR R0 [GB+colorLED]
+		STOR R0 [GB+positionDetectorLED]
+		STOR R0 [GB+stateDisplay]
+		BRA  resting_state
+    if_guard_03_02_end:
+		LOAD R0	[GB+positionDetectorSensor]
+		BEQ  if_guard_03_03_end
+		LOAD R0	0
+		STOR R0 [GB+conveyorBelt]
+		STOR R0 [GB+colorLED]
+		STOR R0 [GB+positionDetectorLED]
+		LOAD R0 4
+		STOR R0 [GB+stateDisplay]
+		BRA  running_04
+	if_guard_03_03_end:
+		BRA running_03
 		
+	running_04:
+		LOAD R0 [GB+abort]        ;Load the abort boolean
+		BEQ if_abort_04_end       ;If false, do nothing
+		BRA abort_99              ;If true, branch to abort_99
+	if_abort_04_end:
+		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
+		BEQ  if_guard_04_01_end   ;if one condition is not true, branch to next if 
+		LOAD R0 [GB+whiteBucketFront]
+		BNE  if_guard_04_01_end
+		LOAD R0 POSITIONSTRENGTH
+		STOR R0 [GB+rotatingBucketsLED]
+        LOAD R0 0
+		STOR R0 [GB+clock]
+		LOAD R0 5
+		STOR R0 [GB+stateDisplay]
+		BRA  running_05
+	if_guard_04_01_end:
+		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
+		BEQ  if_guard_04_02_end   ;if one condition is not true, branch to next if 
+		LOAD R0 [GB+whiteBucketFront]
+		BEQ  if_guard_04_02_end
+		LOAD R0 [GB+white]
+		ADD	 R0 1
+		STOR R0 [GB+white]
+		LOAD R0 8
+		STOR R0 [GB+stateDisplay]
+		BRA  running_08
+	if_guard_04_02_end:
+		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
+		BNE  if_guard_04_03_end   ;if one condition is not true, branch to next if 
+		LOAD R0 [GB+whiteBucketFront]
+		BNE  if_guard_04_03_end
+		LOAD R0 [GB+black]
+		ADD	 R0 1
+		STOR R0 [GB+black]
+		LOAD R0 8
+		STOR R0 [GB+stateDisplay]
+		BRA  running_08
+	if_guard_04_03_end:
+		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
+		BNE  if_guard_04_04_end   ;if one condition is not true, branch to next if 
+		LOAD R0 [GB+whiteBucketFront]
+		BEQ  if_guard_04_04_end
+		LOAD R0 BUCKETSSTRENGTH
+		STOR R0 [GB+rotatingBuckets]
+        LOAD R0 0
+		STOR R0 [GB+clock]
+		LOAD R0 7
+		STOR R0 [GB+stateDisplay]
+		BRA  running_07
+	if_guard_04_04_end:
+	    BRA  running_04
 		
-			
+	running_05:
+		LOAD R0 [GB+abort]        ;Load the abort boolean
+		BEQ if_abort_05_end       ;If false, do nothing
+		BRA abort_99              ;If true, branch to abort_99
+	if_abort_05_end:
+		LOAD R0 [GB+clock]
+		CMP  R0 1
+		BLT  if_guard_05_end
+		LOAD R0 BUCKETSSTRENGTH
+		STOR R0 [GB+rotatingBuckets]
+	   	LOAD R0 6
+		STOR R0 [GB+stateDisplay]
+		BRA  running_06
+	if_guard_05_end:
+		BRA	 running_05
+	
+	
+	
 	; R0 is value to be shifted (right) and R1 number of bits to be shifted
 	shift_bits:
         PUSH R1                   ;push R1 to prevent mutation
