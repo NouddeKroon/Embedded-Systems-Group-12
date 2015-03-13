@@ -1,7 +1,28 @@
 @DATA
-	leds_timers DS 8
-	button_prev_state DW 0
-	counter DW 90
+    abort DW 0         ;boolean, true if abort has been pressed
+    startStop DW 0     ;boolean, true if start/stop is currently pressed
+    stopPressed DW 0   ;boolean, true if start/stop has been 
+	                   ;pressed during current cycle
+    colorWhite DW 0    ;boolean, true if white disk has been detected during 
+	                   ;current cycle
+    conveyorBelt DW 0  ;current strength of conveyor belt output
+    rotatingBuckets DW 0  ;current strength of rotating buckets output
+    loadingArm DW 0    ;current strength of loadingArm output
+    colorLED DW 0      ;current strength of color detector led
+    positionDetectorLED DW 0  ;current strength of position detector lED 
+	rotatingBucketsLED DW 0  ;current strength of rotating buckets LED
+    whiteBucketFront DW 0  ;boolean, true if white disk bucket is infront
+    black DW 0         ;amount of black chips detected so far
+    white DW 0         ;amount of white chips detected so far
+    stateDisplay DW 0  ;number tracking current state
+    loadingArmPS DW 0  ;boolean, true if loading arm sensor is high
+    positionDetectorSensor DW 0 ;boolean, true if position detector sensor is high
+    rotatingBucketsSensor DW 0  ;boolean, true if rotating buckets sensor is high
+    colorSensor DW 0   ;boolean, true if color sensor 
+    clock DW 0         ;an integer counting up once every interrupt
+    previousInput DW 0 ;variable containing previous input
+    counter DW 0       ;counter tracking PWM cycles
+    displayCounter DW 0  ;counter used in tracking previous display segment activated
 	
 @CODE
    IOAREA      EQU  -16  ;  address of the I/O-Area, modulo 2^18
@@ -13,11 +34,13 @@
                          ;  segments
     TIMER      EQU   13  ;  rel pos of timer in I/O area
 	ADCONV     EQU    6  ;  rel pos of ad converter values
-    
-    ; ARRAYS
-
-	TIMER_INTR_ADDR  EQU  16
-    TIMER_DELTA  EQU  10
+	CONVEYORSTRENGTH EQU 80 ;
+	BUCKETSSTRENGTH EQU 80 ;
+	ARMSTRENGTH EQU 80 ;
+	COLORSTRENGTH EQU 80;
+    POSITIONSTRENGTH EQU 80;
+	TIMER_INTR_ADDR  EQU  16    ;internal adddress of timer interrupt
+    TIMER_DELTA  EQU  10        ;Wait time of timer interrupt
 
    main :
 			LOAD R0  timer_interrupt         ;Retrieve relative interrupt  
