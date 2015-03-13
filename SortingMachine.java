@@ -242,6 +242,7 @@ public class SortingMachine {
             }   
         }
        }
+
        void Running05State(){
         while(true){
             if(Abort == true){
@@ -249,7 +250,7 @@ public class SortingMachine {
                 Abort99State();
             }
             if(Clock >= 1){
-                RotatingBuckets =BUCKETSSTRENGTH;
+                RotatingBuckets = BUCKETSSTRENGTH;
                 StateDisplay = 6;
                 Running06State();
             }
@@ -287,7 +288,6 @@ public class SortingMachine {
         }
        }
        void Running08State(){
-        while(true){
             if(Abort == true){
                 StateDisplay = 99;
                 Abort99State();
@@ -297,8 +297,8 @@ public class SortingMachine {
             PositionDetectorLED = POSITIONSTRENGTH;
             StateDisplay = 9;
             Running09State();
-        }
        }
+
        void Running09State(){
         while(true){
             if(Abort == true){
