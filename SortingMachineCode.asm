@@ -39,7 +39,7 @@
 	ARMSTRENGTH      EQU   80   ;
 	COLORSTRENGTH    EQU   80   ;
     POSITIONSTRENGTH EQU   80   ;
-	TIMER_INTR_ADDR  EQU   16   ;internal adddress of timer interrupt
+	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
  
    main :
@@ -57,6 +57,28 @@
 				
 	;Main loop, checks if each button is pressed and updates leds_timers 
 	;appropriately.
+	
+	resting_state :               ;begin resting state 
+		LOAD R0 [GB+abort]        ;Load the abort boolean
+		BEQ if_abort_00_end       ;If false, do nothing
+		BRA abort_99              ;If true, branch to abort_99
+	if_abort_00_end :             ;
+		LOAD R0 [GB+startStop]    ;Load the startStop boolean
+		BEQ if_guard_00_end       ;If false, do nothing
+		LOAD R0 ARMSTRENGTH       ;                  
+		STOR R0 [GB+loadingArm]   ;Set loadingArm to ARMSTRENGTH 
+		LOAD R0 0                 ;
+		STOR R0 [GB+stopPressed]  ;Set stopPressed to false
+		LOAD R0 1                  
+		STOR R0 [GB+stateDisplay] ;Update the stateDisplay
+		BRA running_01            ;Branch to the next state
+	if_guard_00_end :
+	BRA resting_state             ;endlessly loop
+	
+	
+	
+	running_01:
+		
 		
 			
 	; R0 is value to be shifted (right) and R1 number of bits to be shifted
