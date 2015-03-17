@@ -85,7 +85,7 @@
 		LOAD R0 [GB+loadingArmPS]
 		BEQ  if_guard_01_end
 		LOAD R0 2
-		STOR R0 [GB+stateDisplay] ;display lost when R0 is used, maybe use another reg
+		STOR R0 [GB+stateDisplay] 
 		BRA running_02
 	if_guard_01_end:
 		BRA running_01
@@ -109,7 +109,7 @@
 		STOR R0 [GB+loadingArm]
 		STOR R0 [GB+colorWhite]
 	    LOAD R0	3
-		STOR R0 s[GB+stateDisplay]
+		STOR R0 [GB+stateDisplay]
 		BRA running_03
 	if_guard_02_end:
 		BRA running_02	
@@ -445,7 +445,122 @@ v		STOR R0 [GB+conveyorBelt]
 		SETI 8                  ;Enable interrupt
 		RTE
 	
+	read_inputs:
+		LOAD R0 0                           ;Read input of the Start/Stop button
+		BRS  update_button
+		LOAD R0 1							;Read input of the abort button
+		BRS  update_button
+		LOAD R2 [R5+INPUT]
+		LOAD R0 1
+		LOAD R1 2
+		BRS  shift_bits
+		AND  R0 R2
+		BEQ  colorSensor_false
+		LOAD R0 1
+		STOR R0 [GB+colorSensor]
+		BRA  positionDetectorSensor_check
+	colorSensor_false:
+		LOAD R0 0
+		STOR R0 [GB+colorSensor]
+	positionDetectorSensor_check:
+		LOAD R0 1
+		LOAD R1 3
+		BRS  shift_bits
+		AND  R0 R2
+		BEQ  positionDetectorSensor_false
+		LOAD R0 1
+		STOR R0 [GB+positionDetectorSensor]
+		BRA  rotatingBucketsSensor_check
+	positionDetectorSensor_false:
+		LOAD R0 0
+		STOR R0 [GB+positionDetectorSensor]
+	rotatingBucketsSensor_check:
+		LOAD R0 1
+		LOAD R1 4
+		BRS  shift_bits
+		AND  R0 R2
+		BEQ  rotatingBucketsSensor_false
+		LOAD R0 1
+		STOR R0 [GB+rotatingBucketsSensor]
+		BRA  loadingArmPS_check
+	rotatingBucketsSensor_false:
+		LOAD R0 0
+		STOR R0 [GB+rotatingBucketsSensor]
+	loadingArmPS_check:
+		LOAD R0 1
+		LOAD R1 5
+		BRS  shift_bits
+		AND  R0 R2
+		BEQ  loadingArmPS_false
+		LOAD R0 1
+		STOR R0 [GB+loadingArmPS]
+		BRA  input_end
+	loadingArmPS_false:
+		LOAD R0 0
+		STOR R0 [GB+loadingArmPS]
+	input_end:
+		STOR R2 [GB+previousInput]
+		RTS
 	
+	update_button:
+		LOAD R2 [R5+INPUT]					;Load input bits into R2
+		LOAD R3 R2							;Save the values of the bits in 
+		                                    ;R3 as well
+		LOAD R1 R0							;Load the button to be pressed 
+		                                    ;in R1
+		LOAD R0 1							;Load the number 1 in R0 in 
+		                                    ;preparation of bit shift
+		BRS  shift_bits						;Shift bits
+		AND  R2 R0							;Select the relevant input bit	
+		BEQ  update_button_set_zero			;If 0, jump to 
+		                                    ;update_button_set_zero, to 
+											;store the state
+		LOAD R4 [GB+previousInput]			;Load previous state in R4
+		AND  R4 R0							;Select the relevant bit of the
+                                               ;previous state
+		BNE  update_button_end				;If previous state has relevant 
+		                                    ;bit already pressed, jump to 
+											;end
+		ADD  R1 leds_timers					;Load the address of the 
+		                                    ;relevant timer in R1
+		AND  R3 1							;Select only the first bit of 
+		                                    ;the input
+		LOAD R4 [GB+R1]						;Load the previous led timer 
+		                                    ;in R0
+		BEQ  update_state					;If this is already 0, we jump 
+		                                    ;to update_state
+		SUB  R4 10							;If not already 0, substract 10
+		STOR R4 [GB+R1]						;Store the new found value at 
+		                                    ;the led timer
+		BRA  update_state					;Branch to update state
+											;Store the new timer in the 
+		                                    ;array
+	update_state:
+		LOAD R1 [GB+previousInput]		;Load the previous state in R1
+		OR   R1 R0							;Set the relevant button to 1
+		STOR R1 [GB+previousInput]		;Store the new state
+		BRA  update_button_end				;Branch to end
+	update_button_set_zero:
+		LOAD R1  [GB+previousInput]		;Load the previous state in R1
+		XOR  R0  %1							;Flip all the bits in R0
+		AND  R1  R0							;Set the relevant bit to 0
+		STOR R1 [GB+previousInput]		;Store the new state
+	update_button_end:
+		RTS
+	
+	; R0 is value to be shifted (right) and R1 number of bits to be shifted
+	shift_bits:
+        PUSH R1                   ;push R1 to prevent mutation
+        CMP  R1  0
+		BEQ  shift_bits_end
+	shift_bits_cond:
+        MULS R0  2 ; shift left
+        SUB  R1  1
+		BEQ  shift_bits_end
+        BRA shift_bits_cond
+	shift_bits_end:
+        PULL R1                   ;Return original value for R1
+        RTS	
 	
 	
 	set_outputs_pwm:
