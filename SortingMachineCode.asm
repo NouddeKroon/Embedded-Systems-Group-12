@@ -454,105 +454,108 @@ v		STOR R0 [GB+conveyorBelt]
 	set_outputs_pwm_con:
 		STOR R0 [GB+counter]        ;Store new counter value 
 		LOAD R2 0                   ;Set R2 initially to 0
-		LOAD R1 [GB+loadingArm]
-		CMP  R1 R0
-		BLE  set_outputs_pwm_2
-		OR   R2 %01
+		LOAD R1 [GB+loadingArm]		;Load loading arm strength in R1
+		CMP  R1 R0					;Compare strength to counter
+		BLE  set_outputs_pwm_2      ;If strength <= counter do nothing
+		OR   R2 %01                 ;If strength > counter set corresponding output bit
 	set_outputs_pwm_2:
-		LOAD R1 [GB+conveyorBelt]
-		CMP  R1 R0
-		BLE  set_outputs_pwm_3
-		OR   R2 %010
+		LOAD R1 [GB+conveyorBelt]	;Load conveyor belt strength in R1
+		CMP  R1 R0					;Compare strength to counter
+		BLE  set_outputs_pwm_3		;If strength <= counter do nothing
+		OR   R2 %010				;If strength > counter set corresponding output bit
 	set_outputs_pwm_3:
-		LOAD R1 [GB+rotatingBuckets]
-		CMP  R1 R0
-		BLE  set_outputs_pwm_4
-		OR   R2 %0100
-	set_outputs_pwm_4:
-		LOAD R1 [GB+colorLED]
-		CMP  R1 R0
-		BLE  set_outputs_pwm_5
-		OR   R2 %01000
+		LOAD R1 [GB+rotatingBuckets] ;Load rotating bucket strength in R1
+		CMP  R1 R0					;compare strength to counter
+		BLE  set_outputs_pwm_4		;If strength <= counter do nothing
+		OR   R2 %0100				;if strength > counter set corresponding output bit
+	set_outputs_pwm_4:				
+		LOAD R1 [GB+colorLED]		;Load color LED brightness in R1
+		CMP  R1 R0					;Compare brightness to counter
+		BLE  set_outputs_pwm_5		;If brightness <= counter do nothing
+		OR   R2 %01000				;If brightness > counter set corresponding output bit
 	set_outputs_pwm_5:
-		LOAD R1 [GB+positionDetectorLED]
-		CMP  R1 R0
-		BLE  set_outputs_pwm_6
-		OR   R2 %010000
+		LOAD R1 [GB+positionDetectorLED] ;Load position detector LED brightness in R1
+		CMP  R1 R0					;Compare brightness to counter
+		BLE  set_outputs_pwm_6		;If brightness <= counter do nothing
+		OR   R2 %010000				;If brightness > counter set corresponding output bit
 	set_outputs_pwm_6:
-		LOAD R1 [GB+rotatingBucketsLED]
-		CMP  R1 R0
-		BLE  set_outputs_pwm_end
-		OR   R2 %0100000
+		LOAD R1 [GB+rotatingBucketsLED]	;Load rotating bucket LED brightness in R1
+		CMP  R1 R0					;Compare brightness to counter
+		BLE  set_outputs_pwm_end	;If brightness <= counter do nothing
+		OR   R2 %0100000			;If brightness > counter set corresponding output bit
 	set_outputs_pwm_end:
 		STOR R2 [R5+OUTPUT]		;Update the LEDS and motors
 		RTS
 		
 	activate_display:
-		LOAD R1 [GB+displayCounter]
-		CMP  R1 0
-		BNE  activate_display_d2
-		LOAD R0 [GB+black]
-		MOD  R0 10
-		BRS  Hex7Seg
-	    STOR R1 [R5+DSPSEG]
-		LOAD R0 %01
-		STOR R0 [R5+DSPDIG]
-		BRA  activate_display_end
+		LOAD R1 [GB+displayCounter]	;Load the display counter into R1
+		CMP  R1 0					;Compare display counter to zero
+		BNE  activate_display_d2	;If display counter is not zero, branch away
+		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
+		MOD  R0 10					;Take that number modulo ten (to get rightmost digit)
+		BRS  Hex7Seg				;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %01					;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_display_end	;Branch to end
 	activate_display_d2 :
-		CMP R1 1
-		BNE activate_display_d3
-		DIV R0 10
-		BRS Hex7Seg
-		STOR R1 [R5+DSPSEG]
-		LOAD R0 %010
-		STOR R0 [R5+DSPDIG]
-		BRA  activate_display_end
+		CMP R1 1					;Compare display counter to 1
+		BNE activate_display_d3		;If display counter is not 1, branch away
+		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
+		DIV R0 10					;Divide number of black disks sorted by ten (to get second digit)
+		BRS Hex7Seg					;Convert to corresponding segment code
+		STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %010				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_display_end	;Branch to end
 	activate_display_d3 :
-		CMP R1 2
-		BNE activate_display_d4
-		LOAD R0 [GB+stateDisplay]
-		MOD R0 10
-		BRS Hex7Seg
-		STOR R1 [R5+DSPSEG]
-		LOAD R0 %0100
-		STOR R0 [R5+DSPDIG]
-		BRA  activate_display_end
+		CMP R1 2					;Compare display counter to 2
+		BNE activate_display_d4		;If display counter is not 2, branch away
+		LOAD R0 [GB+stateDisplay]	;Load state display in R0
+		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
+		BRS  Hex7Seg				;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %0100				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_display_end	;Branch to end
 	activate_display_d4 :
-		CMP R1 3
-		BNE activate_display_d5
-		LOAD R0 [GB+stateDisplay]
-		DIV R0 10
-		BRS Hex7Seg
-		STOR R1 [R5+DSPSEG]
-		LOAD R0 %01000
-		STOR R0 [R5+DSPDIG]
-		BRA  activate_display_end
+		CMP R1 3					;Compare display counter to 3
+		BNE activate_display_d5		;If display counter is not 3, branch away
+		LOAD R0 [GB+stateDisplay]	;Load state display in R0
+		DIV R0 10					;Divide that number by 10
+		BRS  Hex7Seg				;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %01000				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_display_end	;Branch to end
 	activate_display_d5 :
-		CMP R1 4
-		BNE activate_display_d6
-		LOAD R0 [GB+white]
-		MOD R0 10
-		BRS Hex7Seg
-		STOR R1 [R5+DSPSEG]
-		LOAD R0 %010000
-		STOR R0 [R5+DSPDIG]
-		BRA  activate_display_end
+		CMP R1 4					;Compare display counter to 4
+		BNE activate_display_d6		;If display counter is not 4, branch away
+		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
+		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
+		BRS  Hex7Seg				;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %010000				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_display_end	;Branch to end
 	activate_display_d6 :
-		CMP R1 5
-		BNE activate_display_end
-		LOAD R0 [GB+white]
-		DIV R0 10
-		BRS Hex7Seg
-		STOR R1 [R5+DSPSEG]
-		LOAD R0 %0100000
-		STOR R0 [R5+DSPDIG]
+		CMP R1 5					;Compare display counter to 5
+		BNE activate_display_end	;If display counter is not 5, branch away
+		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
+		DIV R0 10					;Divide that number by 10
+		BRS  Hex7Seg				;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %0100000			;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 	activate_display_end :
-		LOAD R1 [GB+displayCounter]
-		ADD  R1 1
-		MOD  R1 6
-		STOR R1 [GB+displayCounter]
+		LOAD R1 [GB+displayCounter]	;Load the display counter in R1
+		ADD  R1 1					;Increment it
+		MOD  R1 6					;Take it modulo six
+		STOR R1 [GB+displayCounter]	;Store the updated display counter
 		RTS
 
+;Converts an integer to the corresponding 7-segment pattern. Number to be converted
+;in R0, return value in R1.
 Hex7Seg     :  BRS  Hex7Seg_bgn  ;  push address(tbl) onto stack and proceed at "bgn"
 Hex7Seg_tbl : CONS  %01111110    ;  7-segment pattern for '0'
               CONS  %00110000    ;  7-segment pattern for '1'
