@@ -41,7 +41,10 @@
     POSITIONSTRENGTH EQU   80   ;
 	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
- 
+	TIMERBUCKETS	 EQU   2000
+	TIMERLED		 EQU   100
+	TIMERFIN		 EQU   5000
+	
    main :
 			LOAD R0  timer_interrupt         ;Retrieve relative interrupt  
 			                                 ;location
@@ -125,7 +128,7 @@
 		STOR R0 [GB+colorWhite]
 	if_guard_03_01_end:
 		LOAD R0 [GB+clock]
-		CMP  R0 500
+		CMP  R0 TIMERFIN
 		BLT  if_guard_03_02_end    ;not completely sure of this, revise later
 		LOAD R0	0
 		STOR R0 [GB+conveyorBelt]
@@ -205,7 +208,7 @@
 		BRA abort_99              ;If true, branch to abort_99
 	if_abort_05_end:
 		LOAD R0 [GB+clock]
-		CMP  R0 1
+		CMP  R0 TIMERLED
 		BLT  if_guard_05_end
 		LOAD R0 BUCKETSSTRENGTH
 		STOR R0 [GB+rotatingBuckets]
@@ -242,7 +245,7 @@
 		BRA abort_99              ;If true, branch to abort_99
 	if_abort_07_end:
 		LOAD R0 [GB+clock]
-		CMP  R0 40
+		CMP  R0 TIMERBUCKETS
 		BLT  if_guard_07_end
 		LOAD R0 0
 		STOR R0 [GB+whiteBucketFront]
@@ -367,7 +370,7 @@ v		STOR R0 [GB+conveyorBelt]
 		BRA abort_99              ;If true, branch to abort_99
 	if_abort_95_end:	
 		LOAD R0 [GB+clock]
-		CMP  R0 1
+		CMP  R0 TIMERLED
 		BLT  if_guard_95_end
 		LOAD R0 BUCKETSSTRENGTH
 		STOR R0 [GB+rotatingBuckets]
