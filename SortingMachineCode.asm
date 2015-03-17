@@ -437,6 +437,18 @@ v		STOR R0 [GB+conveyorBelt]
 		
     ;Timer interrupt service routine	
 	timer_interrupt:
+		BRS set_outputs_pwm
+		BRS read_inputs
+		BRS activate_display
+		LOAD R0 1000            ;Schedule new interrupt
+		STOR R0 [R5+TIMER]      ;
+		SETI 8                  ;Enable interrupt
+		RTE
+	
+	
+	
+	
+	set_outputs_pwm:
 		LOAD R0 [GB+counter]		;Load the counter into R0
 		ADD  R0 10                  ;Increment counter by 10
 		CMP  R0 100                 ;Check if counter is equal to 100
@@ -467,8 +479,5 @@ v		STOR R0 [GB+conveyorBelt]
 		;
 	continue_end:
 		STOR R2 [R5+OUTPUT]		;Update the LEDS
-		LOAD R0 1000            ;Schedule new interrupt
-		STOR R0 [R5+TIMER]      ;
-		SETI 8                  ;Enable interrupt
-		RTE
+
 			
