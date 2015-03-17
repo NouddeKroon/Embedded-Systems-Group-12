@@ -34,16 +34,16 @@
                                 ;  segments
     TIMER            EQU   13   ;  rel pos of timer in I/O area
 	ADCONV           EQU    6   ;  rel pos of ad converter values
-	CONVEYORSTRENGTH EQU   40   ;
+	CONVEYORSTRENGTH EQU   30   ;
 	BUCKETSSTRENGTH  EQU   40   ;
-	ARMSTRENGTH      EQU   40   ;
+	ARMSTRENGTH      EQU   30   ;
 	COLORSTRENGTH    EQU   80   ;
-    POSITIONSTRENGTH EQU   80   ;
+    POSITIONSTRENGTH EQU   100   ;
 	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
-	TIMERBUCKETS	 EQU   2000
-	TIMERLED		 EQU   100
-	TIMERFIN		 EQU   5000
+	TIMERBUCKETS	 EQU   1500
+	TIMERLED		 EQU   500
+	TIMERFIN		 EQU   2000
 	
    main :
 			LOAD R0  timer_interrupt         ;Retrieve relative interrupt  
@@ -137,8 +137,11 @@
 		STOR R0 [GB+stateDisplay]
 		BRA  resting_state
     if_guard_03_02_end:
+		LOAD R0 [GB+clock]
+		CMP  R0 250
+		BLT  if_guard_03_03_end
 		LOAD R0	[GB+positionDetectorSensor]
-		BEQ  if_guard_03_03_end
+		BNE  if_guard_03_03_end
 		LOAD R0	0
 		STOR R0 [GB+conveyorBelt]
 		STOR R0 [GB+colorLED]
@@ -279,6 +282,9 @@
 		BEQ if_abort_09_end       ;If false, do nothing
 		BRA abort_99              ;If true, branch to abort_99
 	if_abort_09_end:
+		LOAD R0 [GB+clock]
+		CMP  R0 500
+		BLT  if_guard_09_02_end
 		LOAD R0 [GB+stopPressed]
 		BEQ  if_guard_09_01_end
 		LOAD R0 0
@@ -357,7 +363,7 @@
 		STOR R0 [GB+loadingArm]
 		STOR R0 [GB+clock]
 		LOAD R0 POSITIONSTRENGTH
-		STOR R0 [GB+rotatingBuckets]
+		STOR R0 [GB+rotatingBucketsLED]
 		LOAD R0 95
 		STOR R0 [GB+stateDisplay]
 		BRA  initialize_95
@@ -403,8 +409,11 @@
 		BRS set_outputs_pwm
 		BRS read_inputs
 		BRS activate_display
-		LOAD R0 10            ;Schedule new interrupt
+		LOAD R0 20            ;Schedule new interrupt
 		STOR R0 [R5+TIMER]      ;
+		LOAD R0 [GB+clock]
+		ADD  R0 1
+		STOR R0 [GB+clock]
 		SETI 8                  ;Enable interrupt
 		RTE
 	
@@ -502,7 +511,7 @@
 	
 	set_outputs_pwm:
 		LOAD R0 [GB+counter]		;Load the counter into R0
-		ADD  R0 10                  ;Increment counter by 10
+		ADD  R0 20                  ;Increment counter by 10
 		CMP  R0 100                 ;Check if counter is equal to 100
 		BNE  set_outputs_pwm_con
 		LOAD R0 0                   ;If counter is 100 reset to 0
