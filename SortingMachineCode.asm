@@ -444,40 +444,128 @@ v		STOR R0 [GB+conveyorBelt]
 		STOR R0 [R5+TIMER]      ;
 		SETI 8                  ;Enable interrupt
 		RTE
-	
-	
-	
-	
+		
 	set_outputs_pwm:
 		LOAD R0 [GB+counter]		;Load the counter into R0
 		ADD  R0 10                  ;Increment counter by 10
 		CMP  R0 100                 ;Check if counter is equal to 100
-		BNE  timer_interrupt_continue
+		BNE  set_outputs_pwm_con
 		LOAD R0 0                   ;If counter is 100 reset to 0
-	timer_interrupt_continue:
+	set_outputs_pwm_con:
 		STOR R0 [GB+counter]        ;Store new counter value 
 		LOAD R2 0                   ;Set R2 initially to 0
-		;
-		;For each led, call set_led routine, which sets the appropriate bit in 
-		;R2 to 1 if the led is supposed to be on at this point in time.
-		LOAD R1 0
-		BRS  set_led             
-		LOAD R1 1
-		BRS  set_led
-		LOAD R1 2
-		BRS  set_led
-		LOAD R1 3
-		BRS  set_led
-		LOAD R1 4
-		BRS  set_led
-		LOAD R1 5
-		BRS  set_led
-		LOAD R1 6
-		BRS  set_led
-		LOAD R1 7
-		BRS  set_led
-		;
-	continue_end:
-		STOR R2 [R5+OUTPUT]		;Update the LEDS
+		LOAD R1 [GB+loadingArm]
+		CMP  R1 R0
+		BLE  set_outputs_pwm_2
+		OR   R2 %01
+	set_outputs_pwm_2:
+		LOAD R1 [GB+conveyorBelt]
+		CMP  R1 R0
+		BLE  set_outputs_pwm_3
+		OR   R2 %010
+	set_outputs_pwm_3:
+		LOAD R1 [GB+rotatingBuckets]
+		CMP  R1 R0
+		BLE  set_outputs_pwm_4
+		OR   R2 %0100
+	set_outputs_pwm_4:
+		LOAD R1 [GB+colorLED]
+		CMP  R1 R0
+		BLE  set_outputs_pwm_5
+		OR   R2 %01000
+	set_outputs_pwm_5:
+		LOAD R1 [GB+positionDetectorLED]
+		CMP  R1 R0
+		BLE  set_outputs_pwm_6
+		OR   R2 %010000
+	set_outputs_pwm_6:
+		LOAD R1 [GB+rotatingBucketsLED]
+		CMP  R1 R0
+		BLE  set_outputs_pwm_end
+		OR   R2 %0100000
+	set_outputs_pwm_end:
+		STOR R2 [R5+OUTPUT]		;Update the LEDS and motors
+		RTS
+		
+	activate_display:
+		LOAD R1 [GB+displayCounter]
+		CMP  R1 0
+		BNE  activate_display_d2
+		LOAD R0 [GB+black]
+		MOD  R0 10
+		BRS  Hex7Seg
+	    STOR R1 [R5+DSPSEG]
+		LOAD R0 %01
+		STOR R0 [R5+DSPDIG]
+		BRA  activate_display_end
+	activate_display_d2 :
+		CMP R1 1
+		BNE activate_display_d3
+		DIV R0 10
+		BRS Hex7Seg
+		STOR R1 [R5+DSPSEG]
+		LOAD R0 %010
+		STOR R0 [R5+DSPDIG]
+		BRA  activate_display_end
+	activate_display_d3 :
+		CMP R1 2
+		BNE activate_display_d4
+		LOAD R0 [GB+stateDisplay]
+		MOD R0 10
+		BRS Hex7Seg
+		STOR R1 [R5+DSPSEG]
+		LOAD R0 %0100
+		STOR R0 [R5+DSPDIG]
+		BRA  activate_display_end
+	activate_display_d4 :
+		CMP R1 3
+		BNE activate_display_d5
+		LOAD R0 [GB+stateDisplay]
+		DIV R0 10
+		BRS Hex7Seg
+		STOR R1 [R5+DSPSEG]
+		LOAD R0 %01000
+		STOR R0 [R5+DSPDIG]
+		BRA  activate_display_end
+	activate_display_d5 :
+		CMP R1 4
+		BNE activate_display_d6
+		LOAD R0 [GB+white]
+		MOD R0 10
+		BRS Hex7Seg
+		STOR R1 [R5+DSPSEG]
+		LOAD R0 %010000
+		STOR R0 [R5+DSPDIG]
+		BRA  activate_display_end
+	activate_display_d6 :
+		CMP R1 5
+		BNE activate_display_end
+		LOAD R0 [GB+white]
+		DIV R0 10
+		BRS Hex7Seg
+		STOR R1 [R5+DSPSEG]
+		LOAD R0 %0100000
+		STOR R0 [R5+DSPDIG]
+	activate_display_end :
+		LOAD R1 [GB+displayCounter]
+		ADD  R1 1
+		MOD  R1 6
+		STOR R1 [GB+displayCounter]
+		RTS
 
+Hex7Seg     :  BRS  Hex7Seg_bgn  ;  push address(tbl) onto stack and proceed at "bgn"
+Hex7Seg_tbl : CONS  %01111110    ;  7-segment pattern for '0'
+              CONS  %00110000    ;  7-segment pattern for '1'
+              CONS  %01101101    ;  7-segment pattern for '2'
+              CONS  %01111001    ;  7-segment pattern for '3'
+              CONS  %00110011    ;  7-segment pattern for '4'
+              CONS  %01011011    ;  7-segment pattern for '5'
+              CONS  %01011111    ;  7-segment pattern for '6'
+              CONS  %01110000    ;  7-segment pattern for '7'
+              CONS  %01111111    ;  7-segment pattern for '8'
+              CONS  %01111011    ;  7-segment pattern for '9'
+Hex7Seg_bgn:   AND  R0  %01111   ;  R0 := R0 MOD 16 , just to be safe...
+              LOAD  R1  [SP++]   ;  R1 := address(tbl) (retrieve from stack)
+              LOAD  R1  [R1+R0]  ;  R1 := tbl[R0]
+               RTS
 			
