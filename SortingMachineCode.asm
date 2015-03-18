@@ -30,9 +30,9 @@
     POSITIONSTRENGTH EQU   100   ;
 	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
-	TIMERBUCKETS	 EQU   1500
-	TIMERLED		 EQU   500
-	TIMERFIN		 EQU   2000
+	TIMERBUCKETS	 EQU   750
+	TIMERLED		 EQU   250
+	TIMERFIN		 EQU   1000
 	
    main :
 			LOAD R0  timer_interrupt         ;Retrieve relative interrupt  
@@ -100,9 +100,7 @@
 		BNE  if_guard_02_end      	;If true, loop, if false execute body
 		LOAD R0 0
 		STOR R0 [GB+clock]			;Reset clock
-		LOAD R0 [GB+outputs]		;Load inputs
-		OR   R0  %011010		  	;Set outputs corresponding to conveyor belt, color detector and position detector to true
-		AND  R0  %10			  	;Set output corresponding to loading arm to false 
+		LOAD   R0  %011010		  	;Set outputs corresponding to conveyor belt, color detector and position detector to true
 		STOR R0  [GB+outputs]
 		LOAD R0 0
 		STOR R0 [GB+colorWhite]	  	;Set colorWhite to false
