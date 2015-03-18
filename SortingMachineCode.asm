@@ -289,10 +289,10 @@
 		BEQ if_abort_09_end       	;If false, do nothing
 		BRA abort_99              	;If true, branch to abort_99
 	if_abort_09_end:
-		LOAD R0 [GB+clock]
-		CMP  R0 250
-		BLT  if_guard_09_02_end		;Hack to make sure positionDetectorLED gets time to turn on, TODO properly
-		LOAD R0 [GB+stopPressed]
+		LOAD R0 %01000
+		AND  R0 R1
+		BEQ  if_guard_09_02_end		;Check if position detector detects light again, if not do nothing.
+		LOAD R0 [GB+stopPressed]	
 		BEQ  if_guard_09_01_end		;If stop not pressed skip
 		LOAD R0 0
 		STOR R0 [GB+outputs]		;Turn all outputs off
@@ -528,7 +528,7 @@
 		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
 		BRS  Hex7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
-		LOAD R0 %0100				;Load corresponding Display number in R0
+		LOAD R0 %01000				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d4 :
@@ -538,7 +538,7 @@
 		DIV R0 10					;Divide that number by 10
 		BRS  Hex7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
-		LOAD R0 %01000				;Load corresponding Display number in R0
+		LOAD R0 %010000				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d5 :
@@ -548,7 +548,7 @@
 		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
 		BRS  Hex7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
-		LOAD R0 %010000				;Load corresponding Display number in R0
+		LOAD R0 %01000000			;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d6 :
@@ -556,7 +556,7 @@
 		DIV R0 10					;Divide that number by 10
 		BRS  Hex7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
-		LOAD R0 %0100000			;Load corresponding Display number in R0
+		LOAD R0 %010000000			;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 	activate_display_end :
 		ADD  R2 1					;Increment it
