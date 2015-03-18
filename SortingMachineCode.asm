@@ -46,28 +46,28 @@
 			SUB  R0  [R5+TIMER]              ;Calculate delta time
 			STOR R0  [R5+TIMER]              ;Set timer to 0
 			SETI 8                           ;Enable timer interrupt
-			BRA initialize_97	
+			BRA initialize_97		
 	;Main loop, checks if each button is pressed and updates leds_timers 
 	;appropriately.
 	
-	resting_state :               ;begin resting state
+	resting_state:               ;begin resting state
 		LOAD R1 [R5+INPUT]		  ;Read inputs and store in R1
 		LOAD R0 %010			  
 		AND  R0 R1				  ;Select second bit of input
 		BEQ if_abort_00_end       ;If false, do nothing
 		BRA abort_99              ;If true, branch to abort_99
-	if_abort_00_end :             
-		LOAD [GB+stopPressed]	  ;Check if start/stop is pressed
+	if_abort_00_end:             
+		LOAD R0 [GB+stopPressed]	  ;Check if start/stop is pressed
 		BEQ if_guard_00_end       ;If false, do nothing
 		LOAD R0 [GB+outputs]
 		OR   R0 %01
-		STOR R0 [GB+outputs]]     ;Set bit corresponding to loadingArm to true in outputs word
+		STOR R0 [GB+outputs]     ;Set bit corresponding to loadingArm to true in outputs word
 		LOAD R0 0                 ;
 		STOR R0 [GB+stopPressed]  ;Set stopPressed to false
 		LOAD R0 1                  
 		STOR R0 [GB+stateDisplay] ;Update the stateDisplay
 		BRA running_01            ;Branch to the next state
-	if_guard_00_end :
+	if_guard_00_end:
 	    BRA resting_state         ;endlessly loop
 	
 	
@@ -333,7 +333,7 @@
 		BEQ if_abort_97_end       	;If false, do nothing
 		BRA abort_99              	;If true, branch to abort_99
 	if_abort_97_end:
-	`	LOAD R0 %01
+	 	LOAD R0 %01
 		STOR R0 [GB+outputs]
 	if_guard_97_02_end:
 		BRA  initialize_97_B
@@ -443,7 +443,7 @@
 		STOR R2 [GB+previousInput]			;Store previous inputs
 		RTS
 	
-	;Counter in R3, R2 is the output word that we are building, R1 has the inputs word, R0 used
+	;Counter in R3, R2 is the output word that we are building, R1 has the outputs word, R0 used
 	;as temporary variable for computations and comparisons.
 	set_outputs_pwm:
 		LOAD R3 [GB+counter]		;Load the counter into R0
