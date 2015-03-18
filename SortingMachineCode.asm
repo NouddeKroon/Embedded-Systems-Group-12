@@ -1,24 +1,13 @@
 @DATA
-    abort                   DW 0;boolean, true if abort has been pressed
-    startStop               DW 0;boolean, true if start/stop is currently pressed
     stopPressed             DW 0;boolean, true if start/stop has been 
 								;pressed during current cycle
     colorWhite              DW 0;boolean, true if white disk has been detected during 
 								;current cycle
-    conveyorBelt            DW 0;current strength of conveyor belt output
-    rotatingBuckets         DW 0;current strength of rotating buckets output
-    loadingArm              DW 0;current strength of loadingArm output
-    colorLED                DW 0;current strength of color detector led
-    positionDetectorLED     DW 0;current strength of position detector lED 
-	rotatingBucketsLED      DW 0;current strength of rotating buckets LED
+    outputs		            DW 0;A bitmask in which each output that is currently activated has it's corresponding bit set to 1
     whiteBucketFront        DW 0;boolean, true if white disk bucket is in front
     black                   DW 0;amount of black chips detected so far
     white                   DW 0;amount of white chips detected so far
     stateDisplay            DW 0;number tracking current state
-    loadingArmPS            DW 0;boolean, true if loading arm sensor is high
-    positionDetectorSensor  DW 0;boolean, true if position detector sensor is high
-    rotatingBucketsSensor   DW 0;boolean, true if rotating buckets sensor is high
-    colorSensor             DW 0;boolean, true if color sensor 
     clock                   DW 0;an integer counting up once every interrupt
     previousInput           DW 0;variable containing previous input
     counter                 DW 0;counter tracking PWM cycles
@@ -61,198 +50,214 @@
 	;Main loop, checks if each button is pressed and updates leds_timers 
 	;appropriately.
 	
-	resting_state :               ;begin resting state 
-		LOAD R0 [GB+abort]        ;Load the abort boolean
+	resting_state :               ;begin resting state
+		LOAD R1 [R5+INPUT]		  ;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  ;Select second bit of input
 		BEQ if_abort_00_end       ;If false, do nothing
 		BRA abort_99              ;If true, branch to abort_99
-	if_abort_00_end :             ;
-		LOAD R0 [GB+startStop]    ;Load the startStop boolean
+	if_abort_00_end :             
+		LOAD [GB+stopPressed]	  ;Check if start/stop is pressed
 		BEQ if_guard_00_end       ;If false, do nothing
-		LOAD R0 ARMSTRENGTH       ;                  
-		STOR R0 [GB+loadingArm]   ;Set loadingArm to ARMSTRENGTH 
+		LOAD R0 [GB+outputs]
+		OR   R0 %01
+		STOR R0 [GB+outputs]]     ;Set bit corresponding to loadingArm to true in outputs word
 		LOAD R0 0                 ;
 		STOR R0 [GB+stopPressed]  ;Set stopPressed to false
 		LOAD R0 1                  
 		STOR R0 [GB+stateDisplay] ;Update the stateDisplay
 		BRA running_01            ;Branch to the next state
 	if_guard_00_end :
-	    BRA resting_state             ;endlessly loop
+	    BRA resting_state         ;endlessly loop
 	
 	
 	
 	running_01:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
+		LOAD R1 [R5+INPUT]		  ;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  ;Select second bit of input
 		BEQ if_abort_01_end       ;If false, do nothing
 		BRA abort_99              ;If true, branch to abort_99
-	if_abort_01_end :             ;
-		LOAD R0 [GB+loadingArmPS]
-		BEQ  if_guard_01_end
-		LOAD R0 2
-		STOR R0 [GB+stateDisplay] 
-		BRA running_02
+	if_abort_01_end :             
+		LOAD R0 %0100000			
+		AND  R0 R1				  ;check if loading arm pressure sensor is pressed
+		BEQ  if_guard_01_end	  ;if not do nothing
+		LOAD R0 2					
+		STOR R0 [GB+stateDisplay] ;Set state to 2
+		BRA running_02			  ;Jump to state 2
 	if_guard_01_end:
 		BRA running_01
 	
     running_02:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_02_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
-	if_abort_02_end :             ;
-		LOAD R0 [GB+loadingArmPS] 
-		BNE  if_guard_02_end      ;If true, loop, if false execute body
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_02_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
+	if_abort_02_end :             
+		LOAD R0 %0100000
+		AND  R0 R1
+		BNE  if_guard_02_end      	;If true, loop, if false execute body
 		LOAD R0 0
-		STOR R0 [GB+clock]
-		LOAD R0	CONVEYORSTRENGTH
-		STOR R0 [GB+conveyorBelt]
-		LOAD R0	COLORSTRENGTH
-		STOR R0 [GB+colorLED]
-	    LOAD R0	POSITIONSTRENGTH
-		STOR R0 [GB+positionDetectorLED]
-		LOAD R0	0
-		STOR R0 [GB+loadingArm]
-		STOR R0 [GB+colorWhite]
+		STOR R0 [GB+clock]			;Reset clock
+		LOAD R0 [GB+outputs]		;Load inputs
+		OR   R0  %011010		  	;Set outputs corresponding to conveyor belt, color detector and position detector to true
+		AND  R0  %10			  	;Set output corresponding to loading arm to false 
+		STOR R0  [GB+outputs]
+		LOAD R0 0
+		STOR R0 [GB+colorWhite]	  	;Set colorWhite to false
 	    LOAD R0	3
-		STOR R0 [GB+stateDisplay]
-		BRA running_03
+		STOR R0 [GB+stateDisplay] 	;Set statedisplay to 3
+		BRA running_03			  	;Jump to state 3
 	if_guard_02_end:
 		BRA running_02	
     
 	running_03:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_03_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
-	if_abort_03_end :             ;
-		LOAD R0 [GB+colorSensor]
-		BEQ  if_guard_03_01_end
-		LOAD R0 1
-		STOR R0 [GB+colorWhite]
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_03_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
+	if_abort_03_end :             	
+		LOAD R0 %0100
+		AND  R0 R1					;Check if input bit corresponding to colorsensor is true
+		BEQ  if_guard_03_01_end		;If not, continue
+		LOAD R0 1					
+		STOR R0 [GB+colorWhite]		;If true, set colorWhite to true
 	if_guard_03_01_end:
 		LOAD R0 [GB+clock]
-		CMP  R0 TIMERFIN
-		BLT  if_guard_03_02_end    ;not completely sure of this, revise later
+		CMP  R0 TIMERFIN			;Check if clock passed the TIMERFIN time
+		BLT  if_guard_03_02_end    ;If not, do nothing
 		LOAD R0	0
-		STOR R0 [GB+conveyorBelt]
-		STOR R0 [GB+colorLED]
-		STOR R0 [GB+positionDetectorLED]
-		STOR R0 [GB+stateDisplay]
+		STOR R0 [GB+outputs]		;If so, set outputs to 0 and go to resting state
+		STOR R0 [GB+stopPressed]	;Set stopPressed to false
 		BRA  resting_state
     if_guard_03_02_end:
-		LOAD R0 [GB+clock]
-		CMP  R0 250
-		BLT  if_guard_03_03_end
-		LOAD R0	[GB+positionDetectorSensor]
-		BNE  if_guard_03_03_end
+		CMP  R0 250					
+		BLT  if_guard_03_03_end		;Inbuilt delay hack to make sure machine waits short time for LED to fire up, TODO! (note R0 holds clock still)
+		LOAD R0 %01000				;
+		AND  R0 R1
+		BNE  if_guard_03_03_end		;Check positiondetector to see if disk arrived, if not do nothing
 		LOAD R0	0
-		STOR R0 [GB+conveyorBelt]
-		STOR R0 [GB+colorLED]
-		STOR R0 [GB+positionDetectorLED]
-		LOAD R0 4
-		STOR R0 [GB+stateDisplay]
-		BRA  running_04
+		STOR R0 [GB+outputs]		;Turn off all outputs
+		LOAD R0 4				
+		STOR R0 [GB+stateDisplay]	;Set stateDisplay to 4
+		BRA  running_04				;Branch to state 4
 	if_guard_03_03_end:
 		BRA running_03
 		
 	running_04:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_04_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_04_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_04_end:
 		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
 		BEQ  if_guard_04_01_end   ;if one condition is not true, branch to next if 
 		LOAD R0 [GB+whiteBucketFront]
-		BNE  if_guard_04_01_end
-		LOAD R0 POSITIONSTRENGTH
-		STOR R0 [GB+rotatingBucketsLED]
-        LOAD R0 0
-		STOR R0 [GB+clock]
-		LOAD R0 5
-		STOR R0 [GB+stateDisplay]
-		BRA  running_05
+		BNE  if_guard_04_01_end		;If second condition is true, branch to next if
+		LOAD R0 [GB+outputs]
+		OR   R0 %0100000
+		STOR R0 [GB+outputs]		;Set output corresponding with bucket position LED to true
+        LOAD R0 0					
+		STOR R0 [GB+clock]			;Reset clock to 0
+		LOAD R0 5					
+		STOR R0 [GB+stateDisplay]	;Set state display to 5
+		BRA  running_05				;Go to state 5
 	if_guard_04_01_end:
 		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
 		BEQ  if_guard_04_02_end   ;if one condition is not true, branch to next if 
 		LOAD R0 [GB+whiteBucketFront]
-		BEQ  if_guard_04_02_end
-		LOAD R0 [GB+white]
-		ADD	 R0 1
-		STOR R0 [GB+white]
+		BEQ  if_guard_04_02_end		;If second condition also not true, branch to next if
+		LOAD R0 [GB+white]			
+		ADD	 R0 1					
+		STOR R0 [GB+white]			;Increase white disks by 1
 		LOAD R0 8
-		STOR R0 [GB+stateDisplay]
-		BRA  running_08
+		STOR R0 [GB+stateDisplay]	
+		BRA  running_08				;Set state display to 8 and branch to running_08
 	if_guard_04_02_end:
 		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
 		BNE  if_guard_04_03_end   ;if one condition is not true, branch to next if 
 		LOAD R0 [GB+whiteBucketFront]
-		BNE  if_guard_04_03_end
+		BNE  if_guard_04_03_end		;If second condition also not true, branch to next if
 		LOAD R0 [GB+black]
-		ADD	 R0 1
-		STOR R0 [GB+black]
+		ADD	 R0 1					
+		STOR R0 [GB+black]			;Increment black disks by 1
 		LOAD R0 8
 		STOR R0 [GB+stateDisplay]
-		BRA  running_08
+		BRA  running_08				;Set state display to 8 and go to running_08
 	if_guard_04_03_end:
 		LOAD R0 [GB+colorWhite]   ;if statement with an AND operator
-		BNE  if_guard_04_04_end   ;if one condition is not true, branch to next if 
+		BNE  if_guard_04_04_end   ;if one condition is not true, branch to end
 		LOAD R0 [GB+whiteBucketFront]
-		BEQ  if_guard_04_04_end
-		LOAD R0 BUCKETSSTRENGTH
-		STOR R0 [GB+rotatingBuckets]
+		BEQ  if_guard_04_04_end	  ;If second condition is also not true, branch to end
+		LOAD R0 [GB+outputs]
+		OR   R0 %0100
+		STOR R0 [GB+outputs]	 	;Set bit corresponding to rotating buckets motor to true
         LOAD R0 0
-		STOR R0 [GB+clock]
+		STOR R0 [GB+clock]			;Reset clock
 		LOAD R0 7
 		STOR R0 [GB+stateDisplay]
-		BRA  running_07
+		BRA  running_07				;Set state display to 7 and go to state running_07
 	if_guard_04_04_end:
 	    BRA  running_04
 		
 	running_05:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_05_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_05_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_05_end:
 		LOAD R0 [GB+clock]
 		CMP  R0 TIMERLED
-		BLT  if_guard_05_end
-		LOAD R0 BUCKETSSTRENGTH
-		STOR R0 [GB+rotatingBuckets]
+		BLT  if_guard_05_end		;If not enough time has passed do nothing
+		LOAD R0 [GB+outputs]
+		OR   R0 %0100
+		STOR R0 [GB+outputs]		;In outputs set bit corresponding to rotating buckets to true
 	   	LOAD R0 6
 		STOR R0 [GB+stateDisplay]
-		BRA  running_06
+		BRA  running_06				;Set statedisplay to 6 and go to state 6
 	if_guard_05_end:
 		BRA	 running_05
 	
 	running_06:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_06_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_06_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_06_end:
-		LOAD R0 [GB+rotatingBucketsSensor]
-		BNE  if_guard_06_end
-		LOAD R0 0
-		STOR R0 [GB+rotatingBuckets]
-		STOR R0 [GB+rotatingBucketsLED]
+		LOAD R0 %010000
+		AND  R1 R0
+		BNE  if_guard_06_end		;Select in input bit corresponding to bucket sensor. If true, go to end.
+		LOAD R0 0				
+		STOR R0 [GB+outputs]		;When in position turn off outputs
 		LOAD R0 1
-		STOR R0 [GB+whiteBucketFront]
+		STOR R0 [GB+whiteBucketFront]	;Set whiteBucketFront to true
 		LOAD R0 [GB+white]
 		ADD  R0 1
-		STOR R0 [GB+white]
+		STOR R0 [GB+white]				;Increment white disks by 1
 		LOAD R0 8
-		STOR R0 [GB+stateDisplay]
-		BRA  running_08
+		STOR R0 [GB+stateDisplay]		
+		BRA  running_08					;Set state display to 8 and go to running_08 state.
 	if_guard_06_end:
 		BRA  running_06
 	
 	running_07:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_07_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_07_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_07_end:
 		LOAD R0 [GB+clock]
 		CMP  R0 TIMERBUCKETS
 		BLT  if_guard_07_end
 		LOAD R0 0
 		STOR R0 [GB+whiteBucketFront]
-		STOR R0 [GB+rotatingBuckets]
+		STOR R0 [GB+outputs]			;Set all outputs to 0
 		LOAD R0 [GB+black]
 		ADD  R0 1
 		STOR R0 [GB+black]
@@ -263,143 +268,146 @@
 		BRA  running_07
 		
 	running_08:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_08_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_08_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_08_end:
 		LOAD R0 0
 		STOR R0 [GB+clock]
-		LOAD R0 CONVEYORSTRENGTH
-		STOR R0 [GB+conveyorBelt]
-		LOAD R0 POSITIONSTRENGTH
-		STOR R0 [GB+positionDetectorLED]
+		LOAD R0 %010010			;Turn on conveyor belt and position detector light
+		STOR R0 [GB+outputs]
 		LOAD R0 9
-		STOR R0 [GB+stateDisplay]
+		STOR R0 [GB+stateDisplay]	;Set state display to 9 and go to state running_09
 		BRA  running_09
 	
 	running_09:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_09_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_09_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_09_end:
 		LOAD R0 [GB+clock]
-		CMP  R0 500
-		BLT  if_guard_09_02_end
+		CMP  R0 250
+		BLT  if_guard_09_02_end		;Hack to make sure positionDetectorLED gets time to turn on, TODO properly
 		LOAD R0 [GB+stopPressed]
-		BEQ  if_guard_09_01_end
+		BEQ  if_guard_09_01_end		;If stop not pressed skip
 		LOAD R0 0
-		STOR R0 [GB+conveyorBelt]
-		STOR R0 [GB+positionDetectorLED]
-		STOR R0 [GB+stateDisplay]
-		BRA  resting_state
+		STOR R0 [GB+outputs]		;Turn all outputs off
+		STOR R0 [GB+stopPressed]	;Set stopPressed back to 0
+		STOR R0 [GB+stateDisplay]	;Set stateDisplay back to 0
+		BRA  resting_state			;Jump to resting state
 	if_guard_09_01_end:
-		LOAD R0 [GB+stopPressed]   ;may be redundant, not sure
-        BNE  if_guard_09_02_end    ;again may be redundant, since the first check
-		                           ;says it cant be true at this point
-	    LOAD R0 0
-		STOR R0 [GB+conveyorBelt]
-		STOR R0 [GB+positionDetectorLED]
-		LOAD R0 ARMSTRENGTH
-		STOR R0 [GB+loadingArm]
+	    LOAD R0 %01
+		STOR R0 [GB+outputs]		;Turn on only loading arm
 		LOAD R0 1
-		STOR R0 [GB+stateDisplay]
-        BRA  running_01
-    if_guard_09_02_end:
+		STOR R0 [GB+stateDisplay]	;Set stateDisplay to 1
+        BRA  running_01				;Go to running_01
+    if_guard_09_02_end:	
 		BRA running_09
 		
 	abort_99:
 		LOAD R0 0
-		STOR R0 [GB+loadingArm]
-		STOR R0 [GB+rotatingBuckets]
-		STOR R0 [GB+rotatingBucketsLED]
-		STOR R0 [GB+conveyorBelt]
-   		STOR R0 [GB+colorLED]
-		STOR R0 [GB+positionDetectorLED]
-		LOAD R0 98
-		STOR R0 [GB+stateDisplay]
-		LOAD R0 0
-		STOR R0 [GB+abort]
+		STOR R0 [GB+outputs]	;Turn off all outputs
+		LOAD R0 98				
+		STOR R0 [GB+stateDisplay]	;Set stateDisplay to 98
+		LOAD R0 0					
+		STOR R0 [GB+stopPressed]	;set stopPressed to false
 		BRA  abort_98
 		
 	abort_98:
-		LOAD R0 [GB+startStop] 
-		BEQ  if_guard_98_end
+		LOAD R0 [GB+stopPressed] 	
+		BEQ  if_guard_98_end		;If stopPressed is false, do nothing
 		LOAD R0 97
-		STOR R0 [GB+stateDisplay]
-		BRA  initialize_97
+		STOR R0 [GB+stateDisplay]	;set statedisplay to 97
+		BRA  initialize_97			;go to state 97
 	if_guard_98_end:
 		BRA  abort_98
 		
 	initialize_97:
-	    LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_97_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_97_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99
 	if_abort_97_end:
-		LOAD R0 [GB+loadingArm]
-		CMP R0 0
-		BNE if_guard_97_01_end
-		LOAD R0 ARMSTRENGTH
-		STOR R0 [GB+loadingArm]
-	if_guard_97_01_end:
-		LOAD R0 [GB+loadingArm]
-		CMP  R0 ARMSTRENGTH
-		BNE  if_guard_97_02_end
-		LOAD R0 [GB+loadingArmPS]
-		BEQ  if_guard_97_02_end
+	`	LOAD R0 %01
+		STOR R0 [GB+outputs]
+	if_guard_97_02_end:
+		BRA  initialize_97_B
+		
+	initialize_97_B:
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_97_B_end       ;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99	
+	if_abort_97_B_end:
+		LOAD R0 %0100000
+		AND  R0 R1
+		BEQ  initialize_97_B_end
 		LOAD R0 96
 		STOR R0 [GB+stateDisplay]
+	initialize_97_B_end:
 		BRA  initialize_96
-	if_guard_97_02_end:
-		BRA  initialize_97
 		
 	initialize_96:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
 		BEQ if_abort_96_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		BRA abort_99              	;If true, branch to abort_99	
 	if_abort_96_end:
-		LOAD R0 [GB+loadingArmPS]
-		BNE  if_guard_96_end
+		LOAD R0 %0100000
+		AND  R0 R1
+		BNE  if_guard_96_end		;If in input bit corresponding to loading arm pressure sensor is 1, skip
 		LOAD R0 0
-		STOR R0 [GB+loadingArm]
-		STOR R0 [GB+clock]
-		LOAD R0 POSITIONSTRENGTH
-		STOR R0 [GB+rotatingBucketsLED]
+		STOR R0 [GB+clock]			;Reset clock to 0
+		LOAD R0 %0100000			;Set outputs with only the rotating bucket LED bit 1
+		STOR R0 [GB+outputs]		;Store this in outputs
 		LOAD R0 95
 		STOR R0 [GB+stateDisplay]
-		BRA  initialize_95
+		BRA  initialize_95			;Set stateDisplay to 95 and continue to state 96
     if_guard_96_end:
 	    BRA  initialize_96
 		
 	initialize_95:
-	    LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_95_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_95_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99	
 	if_abort_95_end:	
-		LOAD R0 [GB+clock]
+		LOAD R0 [GB+clock]			
 		CMP  R0 TIMERLED
-		BLT  if_guard_95_end
-		LOAD R0 BUCKETSSTRENGTH
-		STOR R0 [GB+rotatingBuckets]
+		BLT  if_guard_95_end		;If clock is not passed TIMERLED yet, do nothing
+		LOAD R0 %0100100			;Set bucket LED and bucket motor to 1
+		STOR R0 [GB+outputs]		;Store this in outputs
 		LOAD R0 94
 		STOR R0 [GB+stateDisplay]
-		BRA  initialize_94
+		BRA  initialize_94			;Set stateDisplay to 94 and continue to state 94
 	if_guard_95_end:
 		BRA initialize_95
 		
 	initialize_94:
-		LOAD R0 [GB+abort]        ;Load the abort boolean
-		BEQ if_abort_94_end       ;If false, do nothing
-		BRA abort_99              ;If true, branch to abort_99
+		LOAD R1 [R5+INPUT]		  	;Read inputs and store in R1
+		LOAD R0 %010			  
+		AND  R0 R1				  	;Select second bit of input
+		BEQ if_abort_94_end       	;If false, do nothing
+		BRA abort_99              	;If true, branch to abort_99	
 	if_abort_94_end:
-		LOAD R0 [GB+rotatingBucketsSensor]
+		LOAD R0 %010000
+		AND  R0 R1
 		BNE  if_guard_94_end
 		LOAD R0 0
-		STOR R0 [GB+rotatingBuckets]
-		STOR R0 [GB+rotatingBucketsLED]
-		STOR R0 [GB+stateDisplay]
+		STOR R0 [GB+outputs]		;Set all outputs off
+		STOR R0 [GB+stateDisplay]	;Set state display to zero
+		STOR R0 [GB+stopPressed]	;set stopPressed to false
 		LOAD R0 1
-		STOR R0 [GB+whiteBucketFront]
-		BRA  resting_state
+		STOR R0 [GB+whiteBucketFront]	;Set whitebucket front to true
+		BRA  resting_state			;Branch to resting state
 	if_guard_94_end:
 		BRA initialize_94
 	
@@ -409,142 +417,83 @@
 		BRS set_outputs_pwm
 		BRS read_inputs
 		BRS activate_display
-		LOAD R0 20            ;Schedule new interrupt
-		STOR R0 [R5+TIMER]      ;
-		LOAD R0 [GB+clock]
+		LOAD R0 10            ;Schedule new interrupt
+		STOR R0 [R5+TIMER]     
+		LOAD R0 [GB+clock]	  ;Update clock
 		ADD  R0 1
 		STOR R0 [GB+clock]
-		SETI 8                  ;Enable interrupt
-		RTE
+		SETI 8                 ;Enable interrupt
+		RTE					;Return to state machine
 	
-	read_inputs:
-		
-		LOAD R2 [R5+INPUT]					;Load input bits into R2
-		LOAD R3 R2							;Save the values of the bits in 
-		                                    ;R3 as well	
-		LOAD R0 %01
-		AND  R0 R2
-		BEQ  update_startStop_false
-		LOAD R0 1
-		STOR R0 [GB+startStop]
-		BRA  update_stopPressed
-	update_startStop_false:
-		LOAD R0 0
-		STOR R0 [GB+startStop]
-		
+	read_inputs:		
+		LOAD R1 [R5+INPUT]					;Load input bits into R1
+		LOAD R2 [GB+previousInput]			;Load previous input bits into R2
 	update_stopPressed:
 		LOAD R0 %01                         ;Read input of the Start/Stop button										
-		AND  R2 R0							;Select the relevant input bit	
-		BEQ  update_button_abort        	;If 0, jump to 
+		AND  R0 R1							;Select the relevant input bit	
+		BEQ  input_end			        	;If 0, jump to 
 		                                    ;update_button_set_zero, to 
 											;store the state
-		LOAD R4 [GB+previousInput]			;Load previous state in R4
-		AND  R4 R0							;Select the relevant bit of the
+		AND  R0 R2							;Select the relevant bit of the
                                             ;previous state
-		BNE  update_button_abort				
-		LOAD R0 1
-		STOR R0 [GB+stopPressed]
-	
-	
-	update_button_abort:
-		LOAD R2 R3							;Save the values of the bits in 
-		                                    ;R3 as well									
-		LOAD R0 %010							;Load the number 1 in R0 in 
-		                                    ;preparation of bit shift
-		
-		AND  R2 R0							;Select the relevant input bit	
-		BEQ  colorSensor_check      	    ;If 0, jump to 
-		                                    ;update_button_set_zero, to 
-											;store the state
-		LOAD R4 [GB+previousInput]			;Load previous state in R4
-		AND  R4 R0							;Select the relevant bit of the
-                                            ;previous state
-		BNE  colorSensor_check				
-		LOAD R0 1
-		STOR R0 [GB+abort]
-               
-	colorSensor_check:                      
-		LOAD R2 R3
-		LOAD R0 %0100	
-		AND  R0 R2                          ;Compare with the input
-		BEQ  colorSensor_false              ;If 0, set colorSensor to false
-		LOAD R0 1                           ;If 1, set to true
-		STOR R0 [GB+colorSensor]
-		BRA  positionDetectorSensor_check   
-	colorSensor_false:
-		LOAD R0 0
-		STOR R0 [GB+colorSensor]
-	positionDetectorSensor_check:
-		LOAD R0 %01000
-		AND  R0 R2                          ;Compare with the input
-		BEQ  positionDetectorSensor_false   ;If 0, set positionDetectorSensor to false
-		LOAD R0 1                           ;If 1, set to true
-		STOR R0 [GB+positionDetectorSensor]
-		BRA  rotatingBucketsSensor_check
-	positionDetectorSensor_false:
-		LOAD R0 0
-		STOR R0 [GB+positionDetectorSensor]
-	rotatingBucketsSensor_check:
-		LOAD R0 %010000
-		AND  R0 R2                          ;Compare with input
-		BEQ  rotatingBucketsSensor_false    ;If 0, set rotatingBucketsSensor to false
-		LOAD R0 1                           ;If 1, set to true
-		STOR R0 [GB+rotatingBucketsSensor]
-		BRA  loadingArmPS_check
-	rotatingBucketsSensor_false:
-		LOAD R0 0
-		STOR R0 [GB+rotatingBucketsSensor]
-	loadingArmPS_check:
-		LOAD R0 %0100000
-		AND  R0 R2                          ;Compare with input
-		BEQ  loadingArmPS_false             ;If 0, set loadingArmPS to false
-		LOAD R0 1                           ;If 1, set to true
-		STOR R0 [GB+loadingArmPS]
-		BRA  input_end
-	loadingArmPS_false:
-		LOAD R0 0
-		STOR R0 [GB+loadingArmPS]
+		BNE  input_end						;If previous state already pressed, do nothing
+		LOAD R0 1							;Set stopPressed to true
+		STOR R0 [GB+stopPressed]		
 	input_end:
-		STOR R2 [GB+previousInput]
+		STOR R2 [GB+previousInput]			;Store previous inputs
 		RTS
 	
-	
+	;Counter in R3, R2 is the output word that we are building, R1 has the inputs word, R0 used
+	;as temporary variable for computations and comparisons.
 	set_outputs_pwm:
-		LOAD R0 [GB+counter]		;Load the counter into R0
-		ADD  R0 20                  ;Increment counter by 10
-		CMP  R0 100                 ;Check if counter is equal to 100
+		LOAD R3 [GB+counter]		;Load the counter into R0
+		ADD  R3 10                  ;Increment counter by 10
+		CMP  R3 100                 ;Check if counter is equal to 100
 		BNE  set_outputs_pwm_con
-		LOAD R0 0                   ;If counter is 100 reset to 0
+		LOAD R3 0                   ;If counter is 100 reset to 0
 	set_outputs_pwm_con:
-		STOR R0 [GB+counter]        ;Store new counter value 
+		STOR R3 [GB+counter]        ;Store new counter value
 		LOAD R2 0                   ;Set R2 initially to 0
-		LOAD R1 [GB+loadingArm]		;Load loading arm strength in R1
-		CMP  R1 R0					;Compare strength to counter
+		LOAD R1 [GB+outputs]		;Load outputs array in R1
+		LOAD R0 %01					
+		AND  R0 R1					;Check if first bit of outputs is set
+		BEQ  set_outputs_pwm_2		;If not continue to next
+		CMP  R3 ARMSTRENGTH			;Compare strength to counter
 		BLE  set_outputs_pwm_2      ;If strength <= counter do nothing
 		OR   R2 %01                 ;If strength > counter set corresponding output bit
 	set_outputs_pwm_2:
-		LOAD R1 [GB+conveyorBelt]	;Load conveyor belt strength in R1
-		CMP  R1 R0					;Compare strength to counter
+		LOAD R0 %010
+		AND  R0 R1					;Check if second bit of outputs array is set
+		BEQ  set_outputs_pwm_3		;If not, continue to next
+		CMP  R3 CONVEYORSTRENGTH	;Compare strength to counter
 		BLE  set_outputs_pwm_3		;If strength <= counter do nothing
 		OR   R2 %010				;If strength > counter set corresponding output bit
 	set_outputs_pwm_3:
-		LOAD R1 [GB+rotatingBuckets] ;Load rotating bucket strength in R1
-		CMP  R1 R0					;compare strength to counter
+		LOAD R0 %0100
+		AND  R0 R1
+		BEQ  set_outputs_pwm_4
+		CMP  R3 BUCKETSSTRENGTH		;compare strength to counter
 		BLE  set_outputs_pwm_4		;If strength <= counter do nothing
 		OR   R2 %0100				;if strength > counter set corresponding output bit
-	set_outputs_pwm_4:				
-		LOAD R1 [GB+colorLED]		;Load color LED brightness in R1
-		CMP  R1 R0					;Compare brightness to counter
+	set_outputs_pwm_4:
+		LOAD R0 %01000
+		AND  R0 R1
+		BEQ  set_outputs_pwm_5
+		CMP  R3 COLORSTRENGTH		;Compare brightness to counter
 		BLE  set_outputs_pwm_5		;If brightness <= counter do nothing
 		OR   R2 %01000				;If brightness > counter set corresponding output bit
 	set_outputs_pwm_5:
-		LOAD R1 [GB+positionDetectorLED] ;Load position detector LED brightness in R1
-		CMP  R1 R0					;Compare brightness to counter
+		LOAD R0 %010000
+		AND  R0 R1
+		BEQ  set_outputs_pwm_6
+		CMP  R3 POSITIONSTRENGTH	;Compare brightness to counter
 		BLE  set_outputs_pwm_6		;If brightness <= counter do nothing
 		OR   R2 %010000				;If brightness > counter set corresponding output bit
 	set_outputs_pwm_6:
-		LOAD R1 [GB+rotatingBucketsLED]	;Load rotating bucket LED brightness in R1
-		CMP  R1 R0					;Compare brightness to counter
+		LOAD R0 %0100000
+		AND  R0 R1
+		BEQ  set_outputs_pwm_end
+		CMP  R3 POSITIONSTRENGTH	;Compare brightness to counter
 		BLE  set_outputs_pwm_end	;If brightness <= counter do nothing
 		OR   R2 %0100000			;If brightness > counter set corresponding output bit
 	set_outputs_pwm_end:
