@@ -501,8 +501,8 @@
 		RTS
 		
 	activate_display:
-		LOAD R1 [GB+displayCounter]	;Load the display counter into R1
-		CMP  R1 0					;Compare display counter to zero
+		LOAD R2 [GB+displayCounter]	;Load the display counter into R1
+		CMP  R2 0					;Compare display counter to zero
 		BNE  activate_display_d2	;If display counter is not zero, branch away
 		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
 		MOD  R0 10					;Take that number modulo ten (to get rightmost digit)
@@ -512,7 +512,7 @@
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d2 :
-		CMP R1 1					;Compare display counter to 1
+		CMP R2 1					;Compare display counter to 1
 		BNE activate_display_d3		;If display counter is not 1, branch away
 		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
 		DIV R0 10					;Divide number of black disks sorted by ten (to get second digit)
@@ -522,7 +522,7 @@
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d3 :
-		CMP R1 2					;Compare display counter to 2
+		CMP R2 2					;Compare display counter to 2
 		BNE activate_display_d4		;If display counter is not 2, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
 		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
@@ -532,7 +532,7 @@
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d4 :
-		CMP R1 3					;Compare display counter to 3
+		CMP R2 3					;Compare display counter to 3
 		BNE activate_display_d5		;If display counter is not 3, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
 		DIV R0 10					;Divide that number by 10
@@ -542,7 +542,7 @@
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d5 :
-		CMP R1 4					;Compare display counter to 4
+		CMP R2 4					;Compare display counter to 4
 		BNE activate_display_d6		;If display counter is not 4, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
 		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
@@ -552,8 +552,6 @@
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d6 :
-		CMP R1 5					;Compare display counter to 5
-		BNE activate_display_end	;If display counter is not 5, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
 		DIV R0 10					;Divide that number by 10
 		BRS  Hex7Seg				;Convert to corresponding segment code
@@ -561,10 +559,9 @@
 		LOAD R0 %0100000			;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 	activate_display_end :
-		LOAD R1 [GB+displayCounter]	;Load the display counter in R1
-		ADD  R1 1					;Increment it
-		MOD  R1 6					;Take it modulo six
-		STOR R1 [GB+displayCounter]	;Store the updated display counter
+		ADD  R2 1					;Increment it
+		MOD  R2 6					;Take it modulo six
+		STOR R2 [GB+displayCounter]	;Store the updated display counter
 		RTS
 
 ;Converts an integer to the corresponding 7-segment pattern. Number to be converted
