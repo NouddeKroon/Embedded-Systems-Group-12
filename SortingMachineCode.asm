@@ -34,7 +34,7 @@
                                 ;  segments
     TIMER            EQU   13   ;  rel pos of timer in I/O area
 	ADCONV           EQU    6   ;  rel pos of ad converter values
-	CONVEYORSTRENGTH EQU   30   ;
+	CONVEYORSTRENGTH EQU   40   ;
 	BUCKETSSTRENGTH  EQU   80   ;
 	ARMSTRENGTH      EQU   30   ;
 	COLORSTRENGTH    EQU   80   ;
@@ -162,6 +162,8 @@
 		BNE  if_guard_04_01_end
 		LOAD R0 POSITIONSTRENGTH
 		STOR R0 [GB+rotatingBucketsLED]
+		LOAD R0 BUCKETSSTRENGTH
+		STOR R0 [GB+rotatingBuckets]
         LOAD R0 0
 		STOR R0 [GB+clock]
 		LOAD R0 5
@@ -212,8 +214,6 @@
 		LOAD R0 [GB+clock]
 		CMP  R0 TIMERLED
 		BLT  if_guard_05_end
-		LOAD R0 BUCKETSSTRENGTH
-		STOR R0 [GB+rotatingBuckets]
 	   	LOAD R0 6
 		STOR R0 [GB+stateDisplay]
 		BRA  running_06
