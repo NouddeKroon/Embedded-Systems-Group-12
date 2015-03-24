@@ -23,6 +23,14 @@
     previousInput           DW 0;variable containing previous input
     counter                 DW 0;counter tracking PWM cycles
     displayCounter          DW 0;counter used in tracking previous display segment activated
+	index					DW 0;counter deciding which index a display digit should present
+	counter2 				DW 0;counter tracking message movement cycles
+	arrayGrats				DW 0, 0, 0, 0, 0, 0, 3, 15, 14, 7, 18, 1, 20, 21, 12, 1, 20, 9, 15, 14, 19, 0, 25, 15, 21, 0, 8, 1, 22, 5, 0, 19, 15, 18, 20, 5, 4, 0, 27, 28, 0, 4, 9, 19, 3, 19, 0, 0, 0, 0, 0, 0;
+							;Array containing all number values of the letters in our congratulations message.
+    arrayLoad				DW 0, 0, 0, 0, 0, 0, 19, 20, 1, 18, 20, 0, 12, 15, 1, 4, 9, 14, 7, 0, 4, 9, 19, 3, 19, 0, 0, 0, 0, 0, 0;
+							;Array containing all number values of the letters in our ready to load message.
+	showCongrats            DW 0;
+	showLoad				DW 0;
 	
 @CODE
     IOAREA           EQU  -16   ;  address of the I/O-Area, modulo 2^18
@@ -44,6 +52,8 @@
 	TIMERBUCKETS	 EQU   750
 	TIMERLED		 EQU   200
 	TIMERFIN		 EQU   1250
+	GRATSLENGTH		 EQU   52   ;  Length of gratsArray
+	LOADLENGTH       EQU   31   ;  Length of loadArray
 	
    main :
 			LOAD R0  timer_interrupt         ;Retrieve relative interrupt  
@@ -71,6 +81,8 @@
 		LOAD R0 ARMSTRENGTH       ;                  
 		STOR R0 [GB+loadingArm]   ;Set loadingArm to ARMSTRENGTH 
 		LOAD R0 0                 ;
+		STOR R0 [GB+showLoad]
+		STOR R0 [GB+showCongrats]
 		STOR R0 [GB+stopPressed]  ;Set stopPressed to false
 		LOAD R0 1                  
 		STOR R0 [GB+stateDisplay] ;Update the stateDisplay
@@ -134,6 +146,9 @@
 		STOR R0 [GB+colorLED]
 		STOR R0 [GB+positionDetectorLED]
 		STOR R0 [GB+stateDisplay]
+		STOR R0 [GB+index]
+		LOAD R0 1
+		STOR R0 [GB+showCongrats]
 		BRA  resting_state
     if_guard_03_02_end:
 		LOAD R0 [GB+clock]
@@ -313,6 +328,8 @@
 		STOR R0 [GB+conveyorBelt]
    		STOR R0 [GB+colorLED]
 		STOR R0 [GB+positionDetectorLED]
+		STOR R0 [GB+showLoad]
+		STOR R0 [GB+showCongrats]
 		LOAD R0 98
 		STOR R0 [GB+stateDisplay]
 		LOAD R0 0
@@ -392,10 +409,12 @@
 		LOAD R0 [GB+rotatingBucketsSensor]
 		BNE  if_guard_94_end
 		LOAD R0 0
+		STOR R0 [GB+index]
 		STOR R0 [GB+rotatingBuckets]
 		STOR R0 [GB+rotatingBucketsLED]
 		STOR R0 [GB+stateDisplay]
 		LOAD R0 1
+		STOR R0 [GB+showLoad]
 		STOR R0 [GB+whiteBucketFront]
 		BRA  resting_state
 	if_guard_94_end:
@@ -406,7 +425,18 @@
 	timer_interrupt:
 		BRS set_outputs_pwm
 		BRS read_inputs
+		LOAD R0 [GB+showCongrats]
+		BEQ dont_show_congrats
+		BRS activate_congrats_display
+		BRA dont_show_counters
+	dont_show_congrats:		
+		LOAD R0 [GB+showLoad]
+		BEQ dont_show_load
+		BRS activate_load_display
+		BRA dont_show_counters
+	dont_show_load:	
 		BRS activate_display
+	dont_show_counters:
 		LOAD R0 20            ;Schedule new interrupt
 		STOR R0 [R5+TIMER]      ;
 		LOAD R0 [GB+clock]
@@ -419,7 +449,17 @@
 		
 		LOAD R2 [R5+INPUT]					;Load input bits into R2
 		LOAD R3 R2							;Save the values of the bits in 
-		                                    ;R3 as well	
+		                                    ;R3 as well
+		LOAD R0 %010000000
+		AND  R0 R2
+		BEQ update_startStop
+		LOAD R4 [GB+previousInput]
+		AND  R0 R4
+		BNE  update_startStop
+		LOAD R0 0
+		STOR R0 [GB+black]
+		STOR R0 [GB+white]
+	update_startStop:
 		LOAD R0 %01
 		AND  R0 R2
 		BEQ  update_startStop_false
@@ -555,7 +595,7 @@
 		BNE  activate_display_d2	;If display counter is not zero, branch away
 		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
 		MOD  R0 10					;Take that number modulo ten (to get rightmost digit)
-		BRS  Hex7Seg				;Convert to corresponding segment code
+		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %01					;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
@@ -565,7 +605,7 @@
 		BNE activate_display_d3		;If display counter is not 1, branch away
 		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
 		DIV R0 10					;Divide number of black disks sorted by ten (to get second digit)
-		BRS Hex7Seg					;Convert to corresponding segment code
+		BRS Dec7Seg					;Convert to corresponding segment code
 		STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %010				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
@@ -575,7 +615,7 @@
 		BNE activate_display_d4		;If display counter is not 2, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
 		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
-		BRS  Hex7Seg				;Convert to corresponding segment code
+		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
@@ -585,7 +625,7 @@
 		BNE activate_display_d5		;If display counter is not 3, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
 		DIV R0 10					;Divide that number by 10
-		BRS  Hex7Seg				;Convert to corresponding segment code
+		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %01000				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
@@ -595,7 +635,7 @@
 		BNE activate_display_d6		;If display counter is not 4, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
 		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
-		BRS  Hex7Seg				;Convert to corresponding segment code
+		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %010000				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
@@ -605,7 +645,7 @@
 		BNE activate_display_end	;If display counter is not 5, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
 		DIV R0 10					;Divide that number by 10
-		BRS  Hex7Seg				;Convert to corresponding segment code
+		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100000			;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
@@ -615,11 +655,257 @@
 		MOD  R1 6					;Take it modulo six
 		STOR R1 [GB+displayCounter]	;Store the updated display counter
 		RTS
+	
+	activate_congrats_display:
+		LOAD R1 [GB+displayCounter]	;Load the display counter into R1
+		CMP  R1 0					;Compare display counter to zero
+		BNE  activate_congrats_display_d2	;If display counter is not zero, branch away
+		LOAD R2 [GB+index]			
+		ADD  R2 arrayGrats			;Load index variable + arrayGrats + 5 in R2
+		ADD  R2 5					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %01					;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_congrats_display_end	;Branch to end
+	activate_congrats_display_d2 :
+		CMP R1 1					;Compare display counter to 1
+		BNE activate_congrats_display_d3	;If display counter is not 1, branch away
+		LOAD R2 [GB+index]			
+		ADD  R2 arrayGrats			;Load index variable + arrayGrats + 4 in R2
+		ADD  R2 4					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS Alphabet7Seg			;Convert to corresponding segment code
+		STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %010				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_congrats_display_end	;Branch to end
+	activate_congrats_display_d3 :
+		CMP R1 2					;Compare display counter to 2
+		BNE activate_congrats_display_d4		;If display counter is not 2, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayGrats			;Load index variable + arrayGrats + 3 in R2
+		ADD  R2 3					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %0100				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_congrats_display_end	;Branch to end
+	activate_congrats_display_d4 :
+		CMP R1 3					;Compare display counter to 3
+		BNE activate_congrats_display_d5		;If display counter is not 3, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayGrats			;Load index variable + arrayGrats + 2 in R2
+		ADD  R2 2					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %01000				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_congrats_display_end	;Branch to end
+	activate_congrats_display_d5 :
+		CMP R1 4					;Compare display counter to 4
+		BNE activate_congrats_display_d6		;If display counter is not 4, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayGrats			;Load index variable + arrayGrats + 1 in R2
+		ADD  R2 1					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0, load in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %010000				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_congrats_display_end	;Branch to end
+	activate_congrats_display_d6 :
+		CMP R1 5					;Compare display counter to 5
+		BNE activate_congrats_display_end		;If display counter is not 5, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayGrats			;Load index variable + arrayGrats in R2
+		LOAD R0 [GB+R2]				;This corresponds to a position in the gratsArray
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %0100000			;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		
+	activate_congrats_display_end :
+		LOAD R1 [GB+displayCounter]	;Load the display counter in R1
+		ADD  R1 1					;Increment it
+		MOD  R1 6					;Take it modulo six
+		STOR R1 [GB+displayCounter]	;Store the updated display counter
+		LOAD R0 [GB+counter2]		;Load the counter into R0
+		ADD  R0 1                   ;Increment counter by 1
+		STOR R0 [GB+counter2]       ;Store the new value of counter
+		CMP  R0 100                 ;Check if counter is equal to 100
+		BNE  congrats_con			;If counter isn't 100 yet, branch away
+		LOAD R0 0                   ;If counter is 100 reset to 0
+		STOR R0 [GB+counter2]       ;And store it
+		LOAD R0 [GB+index]          ;Every 100 counter steps: store index in R0
+		ADD	 R0 1                   ;Increment it
+		STOR R0 [GB+index]			;Store the new value of index
+		LOAD R2 GRATSLENGTH			;Store the array length in R2
+		SUB  R2 6					;Subtract 6 of it
+		CMP  R2 R0					;Compare index with arraylength-6
+		BNE  congrats_con			;If not zero, branch away
+		LOAD R0 0					;If index is equal to arraylength-6
+		STOR R0 [GB+showCongrats]	;Then make showCongrats false
+		STOR R0 [GB+index]			;Reset index
+congrats_con:					
+		RTS
 
+	activate_load_display:
+		LOAD R1 [GB+displayCounter]	;Load the display counter into R1
+		CMP  R1 0					;Compare display counter to zero
+		BNE  activate_load_display_d2	;If display counter is not zero, branch away
+		LOAD R2 [GB+index]			
+		ADD  R2 arrayLoad			;Load index variable + arrayLoad + 5 in R2
+		ADD  R2 5					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %01					;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_load_display_end	;Branch to end
+	activate_load_display_d2 :
+		CMP R1 1					;Compare display counter to 1
+		BNE activate_load_display_d3	;If display counter is not 1, branch away
+		LOAD R2 [GB+index]			
+		ADD  R2 arrayLoad			;Load index variable + arrayLoad + 4 in R2
+		ADD  R2 4					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS Alphabet7Seg			;Convert to corresponding segment code
+		STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %010				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_load_display_end	;Branch to end
+	activate_load_display_d3 :
+		CMP R1 2					;Compare display counter to 2
+		BNE activate_load_display_d4		;If display counter is not 2, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayLoad			;Load index variable + arrayLoad + 3 in R2
+		ADD  R2 3					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %0100				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_load_display_end	;Branch to end
+	activate_load_display_d4 :
+		CMP R1 3					;Compare display counter to 3
+		BNE activate_load_display_d5		;If display counter is not 3, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayLoad			;Load index variable + arrayLoad + 2 in R2
+		ADD  R2 2					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %01000				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_load_display_end	;Branch to end
+	activate_load_display_d5 :
+		CMP R1 4					;Compare display counter to 4
+		BNE activate_load_display_d6		;If display counter is not 4, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayLoad			;Load index variable + arrayLoad + 1 in R2
+		ADD  R2 1					;This corresponds to a position in the gratsArray
+		LOAD R0 [GB+R2]				;Load the number at that position in R0, load in R0
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %010000				;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		BRA  activate_load_display_end	;Branch to end
+	activate_load_display_d6 :
+		CMP R1 5					;Compare display counter to 5
+		BNE activate_load_display_end		;If display counter is not 5, branch away
+		LOAD R2 [GB+index]
+		ADD  R2 arrayLoad			;Load index variable + arrayLoad in R2
+		LOAD R0 [GB+R2]				;This corresponds to a position in the gratsArray
+		BRS  Alphabet7Seg			;Convert to corresponding segment code
+	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
+		LOAD R0 %0100000			;Load corresponding Display number in R0
+		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
+		
+	activate_load_display_end :
+		LOAD R1 [GB+displayCounter]	;Load the display counter in R1
+		ADD  R1 1					;Increment it
+		MOD  R1 6					;Take it modulo six
+		STOR R1 [GB+displayCounter]	;Store the updated display counter
+		LOAD R0 [GB+counter2]		;Load the counter into R0
+		ADD  R0 1                   ;Increment counter by 1
+		STOR R0 [GB+counter2]       ;Store the new value of counter
+		CMP  R0 100                 ;Check if counter is equal to 100
+		BNE  load_con			;If counter isn't 100 yet, branch away
+		LOAD R0 0                   ;If counter is 100 reset to 0
+		STOR R0 [GB+counter2]       ;And store it
+		LOAD R0 [GB+index]          ;Every 100 counter steps: store index in R0
+		ADD	 R0 1                   ;Increment it
+		STOR R0 [GB+index]			;Store the new value of index
+		LOAD R2 LOADLENGTH			;Load the arraylength in R2
+		SUB  R2 6					;Subtract six of it
+		CMP  R2 R0					;Compare index with said length
+		BNE  congrats_con			;If it's not zero, branch away
+		LOAD R0 0					;If they are equal,
+		STOR R0 [GB+showLoad]		;Make showLoad false
+		STOR R0 [GB+index]			;Reset index
+load_con:
+		RTS
+		
+Alphabet7Seg     :  BRS  Alphabet7Seg_bgn  ;  push address(tbl) onto stack and proceed at "bgn"
+Alphabet7Seg_tbl : 
+			  CONS  %00000000    ;  7-segment pattern for space
+			  CONS  %01110111    ;  7-segment pattern for 'A'
+			  CONS  %00011111	 ;  7-segment pattern for 'B'
+			  CONS  %01001110	 ;  7-segment pattern for 'C'
+			  CONS  %00111101    ;  7-segment pattern for 'd'
+			  CONS  %01001111	 ;  7-segment pattern for 'E'
+			  CONS  %01000111	 ;  7-segment pattern for 'F'
+			  CONS  %01111011	 ;  7-segment pattern for 'g'
+			  CONS  %00110111	 ;  7-segment pattern for 'H'
+			  CONS  %00110000	 ;  7-segment pattern for 'I'
+			  CONS  %00111000	 ;  7-segment pattern for 'J'
+			  CONS  %00000000	 ;  k isn't possible
+			  CONS  %00001110	 ;  7-segment pattern for 'L'
+			  CONS  %00000000	 ;  m isn't possible either
+			  CONS  %01110110	 ;  7-segment pattern for 'n'
+			  CONS  %01111110	 ;  7-segment pattern for 'O'
+			  CONS  %01100111    ;  7-segment pattern for 'P'
+			  CONS  %01110011	 ;  7-segment pattern for 'q'
+			  CONS  %01000110    ;  7-segment pattern for 'r'
+			  CONS  %01011011	 ;  7-segment pattern for 'S'
+			  CONS  %00001111    ;  7-segment pattern for 't'
+			  CONS  %00111110	 ;  7-segment pattern for 'U'
+			  CONS	%00111110	 ;  7-segment pattern for 'V'
+			  CONS  %00000000	 ;  w isn't possible
+			  CONS  %00000000	 ;  nor is x
+			  CONS  %00111011    ;  7-segment pattern for 'y'
+			  CONS  %01101101	 ;  7-segment pattern for 'Z' 
+Alphabet7Seg_bgn:
+			  CMP   R0  27				;Compare input value to 27
+			  BNE   Alphabet7Seg_28     ;If it's not 27, branch away
+			  LOAD  R0  [GB+white]		;If it is, it means that we need to output the
+			  ADD   R0  [GB+black]      ;first digit of the total number of discs sorted.
+			  DIV   R0 10				;Add the number of black and white discs together,
+			  BRS   Dec7Seg				;Divide it by ten and branch to Dec7Seg
+			  ADD   SP 1				;Once returned, increment stackpointer
+			  RTS						;Return
+Alphabet7Seg_28:
+			  CMP   R0  28				;Compare input value to 28
+			  BNE   Alphabet7Seg_letters ;If it's not equal to 28, branch away
+			  LOAD  R0  [GB+white]		;If it is, it means that we need to output the
+			  ADD   R0  [GB+black]		;second digit of the total number of discs sorted.
+			  MOD   R0 10				;Add the number of black and white discs together,
+			  BRS   Dec7Seg				;Take it modulo ten and branch to Dec7Seg
+			  ADD   SP 1				;Once returned, increment stackpointer
+			  RTS						;Return
+Alphabet7Seg_letters:			 ;  The program only comes here if a letter needs to be displayed
+              LOAD  R1  [SP++]   ;  R1 := address(tbl) (retrieve from stack)
+              LOAD  R1  [R1+R0]  ;  R1 := tbl[R0]
+               RTS
+			   
 ;Converts an integer to the corresponding 7-segment pattern. Number to be converted
 ;in R0, return value in R1.
-Hex7Seg     :  BRS  Hex7Seg_bgn  ;  push address(tbl) onto stack and proceed at "bgn"
-Hex7Seg_tbl : CONS  %01111110    ;  7-segment pattern for '0'
+Dec7Seg     :  BRS  Dec7Seg_bgn  ;  push address(tbl) onto stack and proceed at "bgn"
+Dec7Seg_tbl : CONS  %01111110    ;  7-segment pattern for '0'
               CONS  %00110000    ;  7-segment pattern for '1'
               CONS  %01101101    ;  7-segment pattern for '2'
               CONS  %01111001    ;  7-segment pattern for '3'
@@ -629,7 +915,7 @@ Hex7Seg_tbl : CONS  %01111110    ;  7-segment pattern for '0'
               CONS  %01110000    ;  7-segment pattern for '7'
               CONS  %01111111    ;  7-segment pattern for '8'
               CONS  %01111011    ;  7-segment pattern for '9'
-Hex7Seg_bgn:   AND  R0  %01111   ;  R0 := R0 MOD 16 , just to be safe...
+Dec7Seg_bgn:   AND  R0  %01111   ;  R0 := R0 MOD 16 , just to be safe...
               LOAD  R1  [SP++]   ;  R1 := address(tbl) (retrieve from stack)
               LOAD  R1  [R1+R0]  ;  R1 := tbl[R0]
                RTS
