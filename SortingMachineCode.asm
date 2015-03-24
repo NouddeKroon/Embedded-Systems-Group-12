@@ -37,7 +37,7 @@
 	CONVEYORSTRENGTH EQU   40   ;
 	BUCKETSSTRENGTH  EQU   80   ;
 	ARMSTRENGTH      EQU   30   ;
-	COLORSTRENGTH    EQU   80   ;
+	COLORSTRENGTH    EQU   100   ;
     POSITIONSTRENGTH EQU   100   ;
 	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
@@ -531,7 +531,7 @@
 		BLE  set_outputs_pwm_4		;If strength <= counter do nothing
 		OR   R2 %0100				;if strength > counter set corresponding output bit
 	set_outputs_pwm_4:				
-		LOAD R1 [GB+colorLED]		;Load color LED brightness in R1
+		LOAD R1 [GB+rotatingBucketsLED]		;Load color LED brightness in R1
 		CMP  R1 R0					;Compare brightness to counter
 		BLE  set_outputs_pwm_5		;If brightness <= counter do nothing
 		OR   R2 %01000				;If brightness > counter set corresponding output bit
@@ -541,7 +541,7 @@
 		BLE  set_outputs_pwm_6		;If brightness <= counter do nothing
 		OR   R2 %010000				;If brightness > counter set corresponding output bit
 	set_outputs_pwm_6:
-		LOAD R1 [GB+rotatingBucketsLED]	;Load rotating bucket LED brightness in R1
+		LOAD R1 [GB+colorLED]	;Load rotating bucket LED brightness in R1
 		CMP  R1 R0					;Compare brightness to counter
 		BLE  set_outputs_pwm_end	;If brightness <= counter do nothing
 		OR   R2 %0100000			;If brightness > counter set corresponding output bit
