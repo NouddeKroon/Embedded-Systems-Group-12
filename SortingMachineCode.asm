@@ -449,7 +449,17 @@
 		
 		LOAD R2 [R5+INPUT]					;Load input bits into R2
 		LOAD R3 R2							;Save the values of the bits in 
-		                                    ;R3 as well	
+		                                    ;R3 as well
+		LOAD R0 %010000000
+		AND  R0 R2
+		BEQ update_startStop
+		LOAD R4 [GB+previousInput]
+		AND  R0 R4
+		BNE  update_startStop
+		LOAD R0 0
+		STOR R0 [GB+black]
+		STOR R0 [GB+white]
+	update_startStop:
 		LOAD R0 %01
 		AND  R0 R2
 		BEQ  update_startStop_false
