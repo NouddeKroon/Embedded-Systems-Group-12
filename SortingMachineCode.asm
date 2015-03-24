@@ -35,15 +35,15 @@
     TIMER            EQU   13   ;  rel pos of timer in I/O area
 	ADCONV           EQU    6   ;  rel pos of ad converter values
 	CONVEYORSTRENGTH EQU   30   ;
-	BUCKETSSTRENGTH  EQU   40   ;
+	BUCKETSSTRENGTH  EQU   80   ;
 	ARMSTRENGTH      EQU   30   ;
-	COLORSTRENGTH    EQU   80   ;
+	COLORSTRENGTH    EQU   100   ;
     POSITIONSTRENGTH EQU   100   ;
 	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
-	TIMERBUCKETS	 EQU   1500
-	TIMERLED		 EQU   500
-	TIMERFIN		 EQU   2000
+	TIMERBUCKETS	 EQU   750
+	TIMERLED		 EQU   200
+	TIMERFIN		 EQU   1250
 	
    main :
 			LOAD R0  timer_interrupt         ;Retrieve relative interrupt  
@@ -101,6 +101,8 @@
 		LOAD R0 [GB+loadingArmPS] 
 		BNE  if_guard_02_end      ;If true, loop, if false execute body
 		LOAD R0 0
+		STOR R0 [GB+loadingArm]
+		STOR R0 [GB+colorWhite]
 		STOR R0 [GB+clock]
 		LOAD R0	CONVEYORSTRENGTH
 		STOR R0 [GB+conveyorBelt]
@@ -108,9 +110,6 @@
 		STOR R0 [GB+colorLED]
 	    LOAD R0	POSITIONSTRENGTH
 		STOR R0 [GB+positionDetectorLED]
-		LOAD R0	0
-		STOR R0 [GB+loadingArm]
-		STOR R0 [GB+colorWhite]
 	    LOAD R0	3
 		STOR R0 [GB+stateDisplay]
 		BRA running_03
@@ -138,7 +137,7 @@
 		BRA  resting_state
     if_guard_03_02_end:
 		LOAD R0 [GB+clock]
-		CMP  R0 250
+		CMP  R0 TIMERLED
 		BLT  if_guard_03_03_end
 		LOAD R0	[GB+positionDetectorSensor]
 		BNE  if_guard_03_03_end
@@ -163,6 +162,8 @@
 		BNE  if_guard_04_01_end
 		LOAD R0 POSITIONSTRENGTH
 		STOR R0 [GB+rotatingBucketsLED]
+		LOAD R0 BUCKETSSTRENGTH
+		STOR R0 [GB+rotatingBuckets]
         LOAD R0 0
 		STOR R0 [GB+clock]
 		LOAD R0 5
@@ -213,8 +214,6 @@
 		LOAD R0 [GB+clock]
 		CMP  R0 TIMERLED
 		BLT  if_guard_05_end
-		LOAD R0 BUCKETSSTRENGTH
-		STOR R0 [GB+rotatingBuckets]
 	   	LOAD R0 6
 		STOR R0 [GB+stateDisplay]
 		BRA  running_06
@@ -282,9 +281,8 @@
 		BEQ if_abort_09_end       ;If false, do nothing
 		BRA abort_99              ;If true, branch to abort_99
 	if_abort_09_end:
-		LOAD R0 [GB+clock]
-		CMP  R0 500
-		BLT  if_guard_09_02_end
+		LOAD R0 [GB+positionDetectorSensor]
+		BEQ  running_09
 		LOAD R0 [GB+stopPressed]
 		BEQ  if_guard_09_01_end
 		LOAD R0 0
@@ -533,7 +531,7 @@
 		BLE  set_outputs_pwm_4		;If strength <= counter do nothing
 		OR   R2 %0100				;if strength > counter set corresponding output bit
 	set_outputs_pwm_4:				
-		LOAD R1 [GB+colorLED]		;Load color LED brightness in R1
+		LOAD R1 [GB+rotatingBucketsLED]		;Load color LED brightness in R1
 		CMP  R1 R0					;Compare brightness to counter
 		BLE  set_outputs_pwm_5		;If brightness <= counter do nothing
 		OR   R2 %01000				;If brightness > counter set corresponding output bit
@@ -543,7 +541,7 @@
 		BLE  set_outputs_pwm_6		;If brightness <= counter do nothing
 		OR   R2 %010000				;If brightness > counter set corresponding output bit
 	set_outputs_pwm_6:
-		LOAD R1 [GB+rotatingBucketsLED]	;Load rotating bucket LED brightness in R1
+		LOAD R1 [GB+colorLED]	;Load rotating bucket LED brightness in R1
 		CMP  R1 R0					;Compare brightness to counter
 		BLE  set_outputs_pwm_end	;If brightness <= counter do nothing
 		OR   R2 %0100000			;If brightness > counter set corresponding output bit
