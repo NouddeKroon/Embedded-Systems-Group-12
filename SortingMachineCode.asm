@@ -280,7 +280,7 @@
 		BRA abort_99              	;If true, branch to abort_99
 	if_abort_09_end:
 		LOAD R0 [GB+positionDetectorSensor] ;Load the Position Detector Sensor
-		BEQ  running_09_02_end		;If false, go to the far end of state 9
+		BEQ  if_guard_09_02_end		;If false, go to the far end of state 9
 		LOAD R0 [GB+stopPressed] 	;Load the StopPressed boolean
 		BEQ  if_guard_09_01_end		;If false, branch to next guard
 		LOAD R0 0
@@ -421,7 +421,7 @@
 		LOAD R0 20            ;Schedule new interrupt
 		STOR R0 [R5+TIMER]    ;Add 20 to the timer
 		LOAD R0 [GB+clock]	  ;Load clock
-		ADD  R0 			  ;Increment it
+		ADD  R0 1			  ;Increment it
 		STOR R0 [GB+clock]	  ;Store clock
 		SETI 8                ;Enable interrupt
 		RTE
