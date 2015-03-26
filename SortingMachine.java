@@ -30,7 +30,7 @@ public class SortingMachine {
     int PositionDetectorLED;
     int RotatingBucketsLED;
     
-    boolean WhiteBucketFront;     //Holds the current position of the panel in 
+    boolean WhiteBucketFront;     //Holds the current position of the panel in.
                                   //front of the bucket.
     int Black;      //Holds the current amount of sorted black disks.
     int White;      //Holds the current amount of sorted white disks.
@@ -45,8 +45,26 @@ public class SortingMachine {
     int Clock;        //Clock regulating timed actions in the program.
     int previousInput; //Holds the previous input.
     int counter;       //Counter used in the interrupt.
-    int DisplayCounter; //Counter used in setting the display LEDs, 
-    
+    int DisplayCounter; //Counter used in setting the display LEDs,
+
+    /**
+     * The following variables are used for the extra feature:
+     */
+    //Index counting what first letter of the array containing the
+    //letters of our message we are displaying on the first segment.
+    int index;
+    int counter2;      //Counter for deciding when the message moves to the next spot.
+    //Array containing the numbers corresponding to the letters of our congrats message.
+    int[] arrayGrats = new {0, 0, 0, 0, 0, 0, 3, 15, 14, 7, 18, 1, 20, 21, 12, 1, 20,
+            9, 15, 14, 19, 0, 25, 15, 21, 0, 8, 1, 22, 5, 0, 19, 15, 18, 20, 5, 4, 0,
+            27, 28, 0, 4, 9, 19, 3, 19, 0, 0, 0, 0, 0, 0};
+    //Array containing the numbers corresponding to the letters of our loading message.
+    int[] arrayLoad = new {0, 0, 0, 0, 0, 0, 19, 20, 1, 18, 20, 0, 12, 15, 1, 4, 9, 14, 7,
+            0, 4, 9, 19, 3, 19, 0, 0, 0, 0, 0, 0};
+    boolean showCongrats;   //Boolean which is true if the Congrats message is to be displayed.
+    boolean showLoad;       //Boolean which is true if the Loading message is to be displayed.
+
+
     /**
      * Every method represents a state the machine can be in, and will under 
      * certain conditions update different variables and jump to another state
@@ -61,6 +79,11 @@ public class SortingMachine {
             if(StartStop == true){
                 LoadingArm = ARMSTRENGTH;
                 StopPressed = false;
+
+                //When we start running, we show normal display
+                showCongrats = false;
+                showLoad = false;
+
                 StateDisplay = 1;
                 Running01State();
             }
@@ -76,8 +99,9 @@ public class SortingMachine {
         PositionDetectorLED = 0;
         StateDisplay = 98;
         Abort = false;
+        showCongrats = false;
+        showLoad = false;
         Abort98State();
-        
     }
     
     void Abort98State(){
@@ -151,8 +175,9 @@ public class SortingMachine {
                 RotatingBucketsLED = 0;
                 WhiteBucketFront = true;
                 StateDisplay = 0;
+                showLoad = true;
+                index = 0;
                 RestingState();
-                
             }
             
         }
@@ -180,7 +205,7 @@ public class SortingMachine {
                 ConveyorBelt = CONVEYORSTRENGTH;
                 ColorLED = COLORSTRENGTH;
                 PositionDetectorLED = POSITIONSTRENGTH;
-                LoadingArm = 00;
+                LoadingArm = 0;
                 ColorWhite = false;
                 StateDisplay = 3;
                 Running03State();
@@ -201,6 +226,11 @@ public class SortingMachine {
                 ColorLED = 0;
                 PositionDetectorLED = 0;
                 StateDisplay = 0;
+
+                //Enable the congrats message
+                index = 0;
+                showCongrats = true;
+
                 RestingState();
             }
             if(PositionDetectorSensor == true){
@@ -310,6 +340,11 @@ public class SortingMachine {
                 ConveyorBelt = 00;
                 PositionDetectorLED = 00;
                 StateDisplay = 0;
+
+                //Enable congrats message.
+                showCongrats = true;
+                index = 0;
+
                 RestingState();
             }
             if(StopPressed == false) {
@@ -373,12 +408,17 @@ public class SortingMachine {
             }else{
                LoadingArmPS = false;
             }
-        previousInput = input;
-            
-        Clock++;
-        Set_Output_PWM();
-        SetDisplayLED();
-           
+            previousInput = input;
+
+            Clock++;
+            Set_Output_PWM();
+            if (showCongrats) {
+                showCongratsMessage();
+            } else if (showLoad) {
+                showLoadMessage();
+            } else {
+                SetDisplayLED();
+            }
         Sleep(1); //The interrupt is executed once every milisecond.
         }
     }
@@ -448,6 +488,75 @@ public class SortingMachine {
         
         DisplayCounter++;
         DisplayCounter = DisplayCounter % 6;
+    }
+
+    /**
+     * Dummy method that converts a letter to a corresponding 7-segment code. If the number passed
+     * is 27 it will return the segment code of the first digit of the total number of disks, if the
+     * passed number is 28 it will return the second digit.
+     */
+    void showLetter();
+
+    /**
+     * Method that lights up each segment in succesion every time it's called, and shows the loading message.
+     */
+    void showLoadMessage(){
+        if(DisplayCounter == 0){
+            SetDisplay(0, showLetter(arrayLoad[0+index]));
+        }
+        if(DisplayCounter == 1){
+            SetDisplay(1, showLetter(arrayLoad[1+index]));
+        }
+        if(DisplayCounter == 2){
+            SetDisplay(2, showLetter(arrayLoad[2+index]));
+        }
+        if(DisplayCounter == 3){
+            SetDisplay(3, showLetter(arrayLoad[3+index]));
+        }
+        if(DisplayCounter == 4){
+            SetDisplay(4, showLetter(arrayLoad[4+index]));
+        }
+        if(DisplayCounter == 5){
+            SetDisplay(5, showLetter(arrayLoad[5+index]));
+        }
+
+        DisplayCounter++;
+        DisplayCounter = DisplayCounter % 6;
+
+        if (index > (arrayLoad.length - 6) {
+            showLoad = false;
+        }
+    }
+
+    /**
+     * Method that lights up each segment in succesion every time it's called, and shows the congrats message.
+     */
+    void showCongratsMessage(){
+        if(DisplayCounter == 0){
+            SetDisplay(0, showLetter(arrayCongrats[0+index]));
+        }
+        if(DisplayCounter == 1){
+            SetDisplay(1, showLetter(arrayCongrats[1+index]));
+        }
+        if(DisplayCounter == 2){
+            SetDisplay(2, showLetter(arrayCongrats[2+index]));
+        }
+        if(DisplayCounter == 3){
+            SetDisplay(3, showLetter(arrayCongrats[3+index]));
+        }
+        if(DisplayCounter == 4){
+            SetDisplay(4, showLetter(arrayCongrats[4+index]));
+        }
+        if(DisplayCounter == 5){
+            SetDisplay(5, showLetter(arrayCongrats[5+index]));
+        }
+
+        DisplayCounter++;
+        DisplayCounter = DisplayCounter % 6;
+
+        if (index > (arrayCongrats.length - 6) {
+            showCongrats = false;
+        }
     }
        
     void storeOutput(int output) {
