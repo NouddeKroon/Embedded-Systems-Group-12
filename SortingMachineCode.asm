@@ -49,9 +49,9 @@
     POSITIONSTRENGTH EQU   100   ;
 	TIMER_INTR_ADDR  EQU   16   ;internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;Wait time of timer interrupt
-	TIMERBUCKETS	 EQU   750
+	TIMERBUCKETS	 EQU   420
 	TIMERLED		 EQU   200
-	TIMERFIN		 EQU   1250
+	TIMERFIN		 EQU   750
 	GRATSLENGTH		 EQU   52   ;  Length of gratsArray
 	LOADLENGTH       EQU   31   ;  Length of loadArray
 	
