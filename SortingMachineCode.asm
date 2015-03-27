@@ -448,6 +448,7 @@
 		LOAD R0 0					
 		STOR R0 [GB+startStop]		;Then set the startStop boolean to false.
 		
+	;Registers used: R0, R1 and R2	
 	update_stopPressed:
 		LOAD R0 %01                     ;Read input of the Start/Stop button										
 		AND  R0 R2						;Select the relevant input bit	
@@ -500,7 +501,7 @@
 	rotatingBucketsSensor_false:			;If false,
 		LOAD R0 0							;then set the Rotating Buckets
 		STOR R0 [GB+rotatingBucketsSensor]  ;Sensor boolean to false
-		
+	
 	loadingArmPS_check:
 		LOAD R0 %0100000				;Select the fifth bit, representing the Loading Arm Pressure Sensor
 		AND  R0 R2                      ;Compare with the input
@@ -574,46 +575,48 @@
 		BNE activate_display_d3		;If display counter is not 1, branch away
 		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
 		DIV R0 10					;Divide number of black disks sorted by ten (to get second digit)
-		BRS Dec7Seg					;Convert to corresponding segment code
+		BRS  Dec7Seg				;Convert to corresponding segment code
 		STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %010				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d3 :
-		CMP R1 2					;Compare display counter to 2
-		BNE activate_display_d4		;If display counter is not 2, branch away
+		CMP  R1 2					;Compare display counter to 2
+		BNE  activate_display_d4	;If display counter is not 2, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
-		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
+		MOD  R0 10					;Take that number modulo ten (to get rightmost digit)
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
+		
+		;Registers used: R0 and R1
 	activate_display_d4 :
-		CMP R1 3					;Compare display counter to 3
+		CMP  R1 3					;Compare display counter to 3
 		BNE activate_display_d5		;If display counter is not 3, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
-		DIV R0 10					;Divide that number by 10
+		DIV  R0 10					;Divide that number by 10
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %01000				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d5 :
-		CMP R1 4					;Compare display counter to 4
-		BNE activate_display_d6		;If display counter is not 4, branch away
+		CMP  R1 4					;Compare display counter to 4
+		BNE  activate_display_d6	;If display counter is not 4, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
-		MOD R0 10					;Take that number modulo ten (to get rightmost digit)
+		MOD  R0 10					;Take that number modulo ten (to get rightmost digit)
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %010000				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		BRA  activate_display_end	;Branch to end
 	activate_display_d6 :
-		CMP R1 5					;Compare display counter to 5
+		CMP  R1 5					;Compare display counter to 5
 		BNE activate_display_end	;If display counter is not 5, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
-		DIV R0 10					;Divide that number by 10
+		DIV  R0 10					;Divide that number by 10
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100000			;Load corresponding Display number in R0
@@ -697,6 +700,7 @@
 		LOAD R0 %0100000			;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
 		
+		;Registers used: R0, R1 and R2
 	activate_congrats_display_end :
 		LOAD R1 [GB+displayCounter]	;Load the display counter in R1
 		ADD  R1 1					;Increment it
@@ -721,7 +725,8 @@
 		STOR R0 [GB+index]			;Reset index
 congrats_con:					
 		RTS
-
+		
+		
 	activate_load_display:
 		LOAD R1 [GB+displayCounter]	;Load the display counter into R1
 		CMP  R1 0					;Compare display counter to zero
@@ -793,7 +798,8 @@ congrats_con:
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100000			;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
-		
+	
+		;Registers used: R0, R1 and R2
 	activate_load_display_end :
 		LOAD R1 [GB+displayCounter]	;Load the display counter in R1
 		ADD  R1 1					;Increment it
@@ -816,9 +822,10 @@ congrats_con:
 		LOAD R0 0					;If they are equal,
 		STOR R0 [GB+showLoad]		;Make showLoad false
 		STOR R0 [GB+index]			;Reset index
-load_con:
+	load_con:
 		RTS
 		
+		;R0 contains the letter to be converted to binary. R1 contains the output
 Alphabet7Seg     :  BRS  Alphabet7Seg_bgn  ;  push address(tbl) onto stack and proceed at "bgn"
 Alphabet7Seg_tbl : 
 			  CONS  %00000000    ;  7-segment pattern for space
