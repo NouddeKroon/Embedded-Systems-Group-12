@@ -48,7 +48,7 @@
 	LEDSTRENGTH      EQU   100  ;  brightness of the a LED when it's on
 	TIMER_INTR_ADDR  EQU   16   ;  internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;  wait time of timer interrupt
-	TIMERBUCKETS	 EQU   420  ;  time it takes for a 180 degree turn of the buckets
+	TIMERBUCKETS	 EQU   384  ;  time it takes for a 180 degree turn of the buckets
 	TIMERLED		 EQU   200  ;  time the LED will be on before we expect the corresponding sensor to show high output
 	TIMERFIN		 EQU   750  ;  time within which a disk needs to be detected, if not, the machine will halt
 	GRATSLENGTH		 EQU   52   ;  length of gratsArray
@@ -854,7 +854,8 @@ Alphabet7Seg_bgn:
 			  LOAD  R0  [GB+white]		;If it is, it means that we need to output the
 			  ADD   R0  [GB+black]      ;first digit of the total number of discs sorted.
 			  DIV   R0 10				;Add the number of black and white discs together,
-			  BRS   Dec7Seg				;Divide it by ten and branch to Dec7Seg
+			  MOD   R0 10				;Divide it by ten, take it modulo 10 (for sorting more than 99 disks)
+			  BRS   Dec7Seg				;Branch to Dec7Seg
 			  ADD   SP 1				;Once returned, increment stackpointer
 			  RTS						;Return
 Alphabet7Seg_28:
