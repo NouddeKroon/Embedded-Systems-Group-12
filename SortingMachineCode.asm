@@ -592,7 +592,6 @@
 		BNE activate_display_d5		;If display counter is not 3, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
 		DIV  R0 10					;Divide that number by 10
-		MOD  R0 10					;Take modulo 10
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %01000				;Load corresponding Display number in R0
