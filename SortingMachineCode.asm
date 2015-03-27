@@ -426,6 +426,8 @@
 		SETI 8                ;Enable interrupt
 		RTE
 	
+	;This subroutine reads all the inputs, and updates the corresponding booleans accordingly. 
+	;Registers used: R0, R1 and R2	
 	read_inputs:
 		LOAD R2 [R5+INPUT]			;Load input bits into R2
 		LOAD R0 %010000000			;The 7th bit represents the clear button
@@ -447,8 +449,6 @@
 	update_startStop_false:			;If start/stop is not pressed,
 		LOAD R0 0					
 		STOR R0 [GB+startStop]		;Then set the startStop boolean to false.
-		
-	;Registers used: R0, R1 and R2	
 	update_stopPressed:
 		LOAD R0 %01                     ;Read input of the Start/Stop button										
 		AND  R0 R2						;Select the relevant input bit	
@@ -457,8 +457,7 @@
 		AND  R0 R1						;Select the relevant bit of the previous input
 		BNE  update_button_abort		;If the start/stop-button was pressed already, branch to update_button_abort
 		LOAD R0 1						;If it went from not pressed to pressed:
-		STOR R0 [GB+stopPressed]		;Set stopPressed to true
-	
+		STOR R0 [GB+stopPressed]		;Set stopPressed to true	
 	update_button_abort:								
 		LOAD R0 %010					;Select the first bit, representing the abort button
 		AND  R0 R2						;Compare it to the actual input
@@ -467,8 +466,7 @@
 		AND  R0 R1						;Select the relevant bit of the previous input
 		BNE  colorSensor_check			;If abort was pressed already, branch to colorSensor_check
 		LOAD R0 1						;If abort first wasn't pressed and now is,
-		STOR R0 [GB+abort]				;then set the abort boolean to true
-               
+		STOR R0 [GB+abort]				;then set the abort boolean to true          
 	colorSensor_check:                      
 		LOAD R0 %0100					;Select the second bit
 		AND  R0 R2                      ;Compare with the input
@@ -479,7 +477,6 @@
 	colorSensor_false:					;If false,
 		LOAD R0 0						;then set the
 		STOR R0 [GB+colorSensor]		;colorSensor boolean to false
-		
 	positionDetectorSensor_check:
 		LOAD R0 %01000						;Select the third bit, representing the Position Detector Sensor
 		AND  R0 R2                          ;Compare with the input
@@ -490,7 +487,6 @@
 	positionDetectorSensor_false:			;If false,
 		LOAD R0 0							;Set the Position Detector Sensor
 		STOR R0 [GB+positionDetectorSensor] ;boolean to false
-		
 	rotatingBucketsSensor_check:
 		LOAD R0 %010000						;Select the fourth bit, representing the Rotating Buckets Sensor
 		AND  R0 R2                          ;Compare with the input
@@ -501,7 +497,6 @@
 	rotatingBucketsSensor_false:			;If false,
 		LOAD R0 0							;then set the Rotating Buckets
 		STOR R0 [GB+rotatingBucketsSensor]  ;Sensor boolean to false
-	
 	loadingArmPS_check:
 		LOAD R0 %0100000				;Select the fifth bit, representing the Loading Arm Pressure Sensor
 		AND  R0 R2                      ;Compare with the input
@@ -516,7 +511,7 @@
 		STOR R2 [GB+previousInput]		;Lastly, store the current input to previousInput
 		RTS
 	
-	
+	;This subroutine controls the outputs of the PP2 by PWM. Registers mutated: R0, R1 and R2.
 	set_outputs_pwm:
 		LOAD R0 [GB+counter]		;Load the counter into R0
 		ADD  R0 20                  ;Increment counter by 10
@@ -559,6 +554,7 @@
 		STOR R2 [R5+OUTPUT]		;Update the LEDS and motors
 		RTS
 		
+	;This subroutine shows the status on the display segments. Registers used by this subroutine: R0 and R1.
 	activate_display:
 		LOAD R1 [GB+displayCounter]	;Load the display counter into R1
 		CMP  R1 0					;Compare display counter to zero
@@ -575,6 +571,7 @@
 		BNE activate_display_d3		;If display counter is not 1, branch away
 		LOAD R0 [GB+black]			;Load number of black disks sorted in R0
 		DIV R0 10					;Divide number of black disks sorted by ten (to get second digit)
+		MOD R0 10					;Take modulo 10.
 		BRS  Dec7Seg				;Convert to corresponding segment code
 		STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %010				;Load corresponding Display number in R0
@@ -589,14 +586,13 @@
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100				;Load corresponding Display number in R0
 		STOR R0 [R5+DSPDIG]			;Store in DSPDIG
-		BRA  activate_display_end	;Branch to end
-		
-		;Registers used: R0 and R1
+		BRA  activate_display_end	;Branch to end	
 	activate_display_d4 :
 		CMP  R1 3					;Compare display counter to 3
 		BNE activate_display_d5		;If display counter is not 3, branch away
 		LOAD R0 [GB+stateDisplay]	;Load state display in R0
 		DIV  R0 10					;Divide that number by 10
+		MOD  R0 10					;Take modulo 10
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %01000				;Load corresponding Display number in R0
@@ -617,6 +613,7 @@
 		BNE activate_display_end	;If display counter is not 5, branch away
 		LOAD R0 [GB+white]			;Load number of white disks sorted in R0
 		DIV  R0 10					;Divide that number by 10
+		MOD  R0 10 					;Take modulo 10
 		BRS  Dec7Seg				;Convert to corresponding segment code
 	    STOR R1 [R5+DSPSEG]			;Store in DSPSEG
 		LOAD R0 %0100000			;Load corresponding Display number in R0
