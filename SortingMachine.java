@@ -13,9 +13,9 @@ public class SortingMachine {
      * For each motor, store the current strength of output for the 
      * motor in an int.                       
      */
-    final int CONVEYORSTRENGTH = 80;
+    final int CONVEYORSTRENGTH = 50;
     final int BUCKETSSTRENGTH = 80;
-    final int ARMSTRENGTH = 80;
+    final int ARMSTRENGTH = 40;
 
     int ConveyorBelt;
     int RotatingBuckets;   
@@ -23,7 +23,8 @@ public class SortingMachine {
     /**
      *Stores an int for the current strength of output for the LED.
      */
-    final int COLORSTRENGTH = 80;
+
+
     final int POSITIONSTRENGTH = 80;
 
     int ColorLED;          
@@ -203,7 +204,7 @@ public class SortingMachine {
             if(LoadingArmPS == false) {
                 Clock = 0;
                 ConveyorBelt = CONVEYORSTRENGTH;
-                ColorLED = COLORSTRENGTH;
+                ColorLED = POSITIONSTRENGTH;
                 PositionDetectorLED = POSITIONSTRENGTH;
                 LoadingArm = 0;
                 ColorWhite = false;

@@ -42,15 +42,15 @@
                                 ;  segments
     TIMER            EQU   13   ;  rel pos of timer in I/O area
 	ADCONV           EQU    6   ;  rel pos of ad converter values
-	CONVEYORSTRENGTH EQU   40   ;  PWM strength of the conveyor belt motor when it's on
+	CONVEYORSTRENGTH EQU   50   ;  PWM strength of the conveyor belt motor when it's on
 	BUCKETSSTRENGTH  EQU   80   ;  PWM strength of the rotating buckets motor when it's on
-	ARMSTRENGTH      EQU   30   ;  PWM strength of the loading arm motor when it's on
+	ARMSTRENGTH      EQU   40   ;  PWM strength of the loading arm motor when it's on
 	LEDSTRENGTH      EQU   100  ;  brightness of the a LED when it's on
 	TIMER_INTR_ADDR  EQU   16   ;  internal address of timer interrupt
     TIMER_DELTA      EQU   10   ;  wait time of timer interrupt
-	TIMERBUCKETS	 EQU   384  ;  time it takes for a 180 degree turn of the buckets
-	TIMERLED		 EQU   200  ;  time the LED will be on before we expect the corresponding sensor to show high output
-	TIMERFIN		 EQU   750  ;  time within which a disk needs to be detected, if not, the machine will halt
+	TIMERBUCKETS	 EQU   760  ;  time it takes for a 180 degree turn of the buckets
+	TIMERLED		 EQU   400  ;  time the LED will be on before we expect the corresponding sensor to show high output
+	TIMERFIN		 EQU   1500  ;  time within which a disk needs to be detected, if not, the machine will halt
 	GRATSLENGTH		 EQU   52   ;  length of gratsArray
 	LOADLENGTH       EQU   31   ;  length of loadArray
 	
@@ -418,7 +418,7 @@
 	dont_show_load:				;When both display messages should not be displayed,
 		BRS activate_display	;we should display the regular display (white, state, black), with the subroutine
 	dont_show_counters:
-		LOAD R0 20            ;Schedule new interrupt
+		LOAD R0 10            ;Schedule new interrupt
 		STOR R0 [R5+TIMER]    ;Add 20 to the timer
 		LOAD R0 [GB+clock]	  ;Load clock
 		ADD  R0 1			  ;Increment it
@@ -514,7 +514,7 @@
 	;This subroutine controls the outputs of the PP2 by PWM. Registers mutated: R0, R1 and R2.
 	set_outputs_pwm:
 		LOAD R0 [GB+counter]		;Load the counter into R0
-		ADD  R0 20                  ;Increment counter by 10
+		ADD  R0 10                  ;Increment counter by 10
 		CMP  R0 100                 ;Check if counter is equal to 100
 		BNE  set_outputs_pwm_con
 		LOAD R0 0                   ;If counter is 100 reset to 0
@@ -705,7 +705,7 @@
 		LOAD R0 [GB+counter2]		;Load the counter into R0
 		ADD  R0 1                   ;Increment counter by 1
 		STOR R0 [GB+counter2]       ;Store the new value of counter
-		CMP  R0 100                 ;Check if counter is equal to 100
+		CMP  R0 200                 ;Check if counter is equal to 100
 		BNE  congrats_con			;If counter isn't 100 yet, branch away
 		LOAD R0 0                   ;If counter is 100 reset to 0
 		STOR R0 [GB+counter2]       ;And store it
@@ -804,7 +804,7 @@ congrats_con:
 		LOAD R0 [GB+counter2]		;Load the counter into R0
 		ADD  R0 1                   ;Increment counter by 1
 		STOR R0 [GB+counter2]       ;Store the new value of counter
-		CMP  R0 100                 ;Check if counter is equal to 100
+		CMP  R0 200                 ;Check if counter is equal to 100
 		BNE  load_con			;If counter isn't 100 yet, branch away
 		LOAD R0 0                   ;If counter is 100 reset to 0
 		STOR R0 [GB+counter2]       ;And store it
