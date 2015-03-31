@@ -362,7 +362,16 @@ public class SortingMachine {
     void interrupt(){                  
         while(true){
             int input = Read_Input();  //simulates reading the input as a binary number.
-            
+
+            //Isolates the seventh bit of the input and checks if it moved
+            //from an unpressed to a pressed state.
+            if ((previousInput & (1 << 7)) == 0) {
+                if ((input &  (1 << 7)) != 0) {
+                   Black = 0;
+                   White = 0;
+                }
+            }
+
              //Isolates the second bit of the input and checks if it moved 
             //from an unpressed to a pressed state.
             if ((previousInput & 1) == 0) {      
