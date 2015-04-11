@@ -24,7 +24,7 @@
     counter                 DW 0;counter tracking PWM cycles
     displayCounter          DW 0;counter used in tracking previous display segment activated
 	index					DW 0;counter deciding which index a display digit should present
-	counter2 				DW 0;counter tracking message movement cycles
+	CounterDisplay 				DW 0;counter tracking message movement cycles
 	arrayGrats				DW 0, 0, 0, 0, 0, 0, 3, 15, 14, 7, 18, 1, 20, 21, 12, 1, 20, 9, 15, 14, 19, 0, 25, 15, 21, 0, 8, 1, 22, 5, 0, 19, 15, 18, 20, 5, 4, 0, 27, 28, 0, 4, 9, 19, 3, 19, 0, 0, 0, 0, 0, 0;
 							;array containing all number values of the letters in our congratulations message.
     arrayLoad				DW 0, 0, 0, 0, 0, 0, 19, 20, 1, 18, 20, 0, 12, 15, 1, 4, 9, 14, 7, 0, 4, 9, 19, 3, 19, 0, 0, 0, 0, 0, 0;
@@ -702,13 +702,13 @@
 		ADD  R1 1					;Increment it
 		MOD  R1 6					;Take it modulo six
 		STOR R1 [GB+displayCounter]	;Store the updated display counter
-		LOAD R0 [GB+counter2]		;Load the counter into R0
+		LOAD R0 [GB+CounterDisplay]		;Load the counter into R0
 		ADD  R0 1                   ;Increment counter by 1
-		STOR R0 [GB+counter2]       ;Store the new value of counter
+		STOR R0 [GB+CounterDisplay]       ;Store the new value of counter
 		CMP  R0 200                 ;Check if counter is equal to 100
 		BNE  congrats_con			;If counter isn't 100 yet, branch away
 		LOAD R0 0                   ;If counter is 100 reset to 0
-		STOR R0 [GB+counter2]       ;And store it
+		STOR R0 [GB+CounterDisplay]       ;And store it
 		LOAD R0 [GB+index]          ;Every 100 counter steps: store index in R0
 		ADD	 R0 1                   ;Increment it
 		STOR R0 [GB+index]			;Store the new value of index
@@ -801,13 +801,13 @@ congrats_con:
 		ADD  R1 1					;Increment it
 		MOD  R1 6					;Take it modulo six
 		STOR R1 [GB+displayCounter]	;Store the updated display counter
-		LOAD R0 [GB+counter2]		;Load the counter into R0
+		LOAD R0 [GB+CounterDisplay]		;Load the counter into R0
 		ADD  R0 1                   ;Increment counter by 1
-		STOR R0 [GB+counter2]       ;Store the new value of counter
+		STOR R0 [GB+CounterDisplay]       ;Store the new value of counter
 		CMP  R0 200                 ;Check if counter is equal to 100
 		BNE  load_con			;If counter isn't 100 yet, branch away
 		LOAD R0 0                   ;If counter is 100 reset to 0
-		STOR R0 [GB+counter2]       ;And store it
+		STOR R0 [GB+CounterDisplay]       ;And store it
 		LOAD R0 [GB+index]          ;Every 100 counter steps: store index in R0
 		ADD	 R0 1                   ;Increment it
 		STOR R0 [GB+index]			;Store the new value of index

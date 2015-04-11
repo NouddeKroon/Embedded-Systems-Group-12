@@ -54,7 +54,7 @@ public class SortingMachine {
     //Index counting what first letter of the array containing the
     //letters of our message we are displaying on the first segment.
     int index;
-    int counter2;      //Counter for deciding when the message moves to the next spot.
+    int counterDisplay;      //Counter for deciding when the message moves to the next spot.
     //Array containing the numbers corresponding to the letters of our congrats message.
     int[] arrayGrats = new {0, 0, 0, 0, 0, 0, 3, 15, 14, 7, 18, 1, 20, 21, 12, 1, 20,
             9, 15, 14, 19, 0, 25, 15, 21, 0, 8, 1, 22, 5, 0, 19, 15, 18, 20, 5, 4, 0,
